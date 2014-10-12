@@ -1,116 +1,165 @@
-var GAME = function() {
+var GAME = GAME || {};
 
-    var container = document.body;
+GAME = function() {
 
-    var scene;
-    var renderer;
-    var camera;
-    var keyboard = new THREEx.KeyboardState();
-    var clock = new THREE.Clock();
-    var controls;
-    var stats;
+    this.container = document.body;
+    this.scene = new THREE.Scene();
+    this.renderer = undefined;
+    this.camera = undefined;
+    this.keyboard = new THREEx.KeyboardState();
+    this.clock = new THREE.Clock();
+    this.controls = undefined;
+    this.stats = undefined;
+    this.loader = new THREEx.UniversalLoader();
+
+    this.log = function(msg) {
+	console.log("GAME:: " + msg);
+    };
 
     // Angles to Rads
-    function toRad(angle) {
+    this.toRad = function(angle) {
 	return angle * 3.14 / 180;
-    }
+    };
 
-    function log(msg) {
-	console.log("GAME:: " + msg);
-    }
+    this.initControls = function() {
+	this.controls = new THREE.OrbitControls(this.camera, this.container);
+    };
 
-    // Render the scene. Map the 3D world to the 2D screen.
-    function renderScene() {
-	renderer.render(scene, camera);
-    }
+    this.initStats = function() {
+	this.stats = new Stats();
+	this.stats.domElement.style.position = 'absolute';
+	this.stats.domElement.style.top = '0px';
+	this.stats.domElement.style.zIndex = 100;
+	this.container.appendChild(this.stats.domElement);
+    };
 
-    function update() {
-	// delta = change in time since last call (in seconds)
-	var delta = clock.getDelta();
-
-	controls.update();
-	stats.update();
-    }
-
-    // Animate the scene and call rendering.
-    function animateScene() {
-	requestAnimationFrame(animateScene);
-	renderScene();
-	update();
-    }
-
-    function createRulerPlane() {
-	var geo = new THREE.PlaneGeometry(1000, 1000, 100, 100);
-	var mat = new THREE.MeshBasicMaterial({
-	    color : 0xaaaaaa,
-	    wireframe : true
-	});
-	var plane = new THREE.Mesh(geo, mat);
-	plane.rotateX(toRad(90));
-	return plane;
-    }
-
-    function createSphere() {
-	// Set the size of the ball by adjusting its radius
-	var radius = 15;
-	// Used twice to set the detail of the Geometry, once for width of the
-	// Sphere, and once for the height
-	var detail = 16;
-	var geometry1 = new THREE.SphereGeometry(radius, detail, detail);
-	// Add a BasicMaterial to our Geometry, color green, in wireframe-mode
-	var material1 = new THREE.MeshBasicMaterial({
-	    color : 0x00ff00,
-	    wireframe : false
-	});
-	return new THREE.Mesh(geometry1, material1);
-    }
-
-    function createLight() {
-	// Light
-	var light = new THREE.PointLight(0xffffff);
-	light.position.x = 20;
-	light.position.y = 20;
-	light.position.z = 100;
-	return light;
-    }
-
-    function initControls() {
-	// move mouse and: left click to rotate,
-	// middle click to zoom,
-	// right click to pan
-	controls = new THREE.OrbitControls(camera, container);
-    }
-
-    function initStats() {
-	// displays current and past frames per second attained by scene
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	stats.domElement.style.zIndex = 100;
-	container.appendChild(stats.domElement);
-    }
-
-    function initScreenEvents() {
-	// automatically resize renderer
-	THREEx.WindowResize(renderer, camera);
-	// toggle full-screen on given key press
+    this.initScreenEvents = function() {
+	THREEx.WindowResize(this.renderer, this.camera);
 	THREEx.FullScreen.bindKey({
 	    charCode : 'm'.charCodeAt(0)
 	});
-    }
+    };
+
+    // Animate the scene and call rendering.
+    this.animateScene = function() {
+	// closure !
+	var animate = function(renderer, scene, camera, controls, stats, clock) {
+	    return function() {
+		requestAnimationFrame(arguments.callee);
+		renderer.render(scene, camera);
+		THREE.AnimationHandler.update(clock.getDelta());
+		controls.update();
+		stats.update();
+	    };
+	};
+	var animateClosure = animate(this.renderer, this.scene, this.camera, this.controls, this.stats, this.clock);
+	animateClosure();
+    };
+
+    this.createRulerPlane = function(scene) {
+	// floor: mesh to receive shadows
+	var floorTexture = new THREE.ImageUtils.loadTexture('textures/Pavement_Broken_UV_H_CM_1.jpg');
+	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+	floorTexture.repeat.set(10, 10);
+	// Note the change to Lambert material.
+	var floorMaterial = new THREE.MeshLambertMaterial({
+	    map : floorTexture,
+	    side : THREE.DoubleSide
+	});
+	var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 100, 100);
+	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+	floor.position.y = -0.5;
+	floor.rotation.x = Math.PI / 2;
+	// Note the mesh is flagged to receive shadows
+	floor.receiveShadow = true;
+	scene.add(floor);
+    };
+
+    this.createSphere = function(scene) {
+	// Sphere parameters: radius, segments along width, segments along
+	// height
+	var sphereGeometry = new THREE.SphereGeometry(50, 32, 16);
+	// use a "lambert" material rather than "basic" for realistic lighting.
+	// (don't forget to add (at least one) light!)
+	var sphereMaterial = new THREE.MeshLambertMaterial({
+	    color : 0x8888ff
+	});
+	var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+	sphere.position.set(100, 50, -50);
+	sphere.castShadow = true;
+	scene.add(sphere);
+    };
+
+    this.createLights = function(scene) {
+	// spotlight #1 -- yellow, dark shadow
+	var spotlight = new THREE.SpotLight(0xffffaa);
+	spotlight.position.set(-700, 700, 700);
+	// nechci aby byla vidět "kamera" světla
+	spotlight.shadowCameraVisible = false;
+	spotlight.shadowDarkness = 0.75;
+	spotlight.intensity = 0.7;
+	// must enable shadow casting ability for the light
+	spotlight.castShadow = true;
+	scene.add(spotlight);
+    };
+
+    this.loadCollada = function(path, modifier) {
+	var scene = this.scene;
+	this.loader.load(path, function(object3d) {
+	    object3d.traverse(function(child) {
+		child.castShadow = true;
+		child.receiveShadow = true;
+		if (child instanceof THREE.SkinnedMesh) {
+		    var animation = new THREE.Animation(child, child.geometry.animation);
+		    animation.play();
+		}
+	    });
+
+	    // this function will be notified when the model is loaded
+	    if (modifier)
+		modifier(object3d);
+	    scene.add(object3d);
+	});
+    };
+
+    this.loadMonster = function() {
+	this.loadCollada('models/monster.dae', function(o) {
+	    o.castShadow = true;
+	    o.receiveShadow = true;
+	});
+    };
+
+    this.loadSkybox = function(scene) {
+	var imagePrefix = "textures/Skybox-";
+	var directions = [ "Right", "Left", "Top", "Bottom", "Front", "Back" ];
+	var imageSuffix = ".bmp";
+	var skyGeometry = new THREE.CubeGeometry(5000, 5000, 5000);
+
+	var materialArray = [];
+	for (var i = 0; i < 6; i++)
+	    materialArray.push(new THREE.MeshBasicMaterial({
+		map : THREE.ImageUtils.loadTexture(imagePrefix + directions[i] + imageSuffix),
+		side : THREE.BackSide
+	    }));
+	var skyMaterial = new THREE.MeshFaceMaterial(materialArray);
+	var skyBox = new THREE.Mesh(skyGeometry, skyMaterial);
+	skyBox.castShadow = false;
+	scene.add(skyBox);
+    };
 
     this.run = function() {
-
 	if (Detector.webgl) {
-	    renderer = new THREE.WebGLRenderer({
+	    this.renderer = new THREE.WebGLRenderer({
 		antialias : true
 	    });
 	} else {
-	    renderer = new THREE.CanvasRenderer();
+	    this.renderer = new THREE.CanvasRenderer();
 	}
 
 	// Set the background color of the renderer to black, with full opacity
-	renderer.setClearColor(0x000000, 1);
+	this.renderer.setClearColor(0x000000, 1);
+	this.renderer.shadowMapEnabled = true;
+	this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
 	// Get the size of the inner window (content area) to create a full size
 	// renderer
@@ -118,16 +167,12 @@ var GAME = function() {
 	var canvasHeight = window.innerHeight;
 
 	// Set the renderers size to the content areas size
-	renderer.setSize(canvasWidth, canvasHeight);
+	this.renderer.setSize(canvasWidth, canvasHeight);
 
 	// Get the DIV element from the HTML document by its ID and append the
 	// renderers DOM object to it
 	// document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
-	container.appendChild(renderer.domElement);
-
-	// Create the scene, in which all objects are stored (e. g. camera,
-	// lights, geometries, ...)
-	scene = new THREE.Scene();
+	this.container.appendChild(this.renderer.domElement);
 
 	// set the view size in pixels (custom or according to window size)
 	// var SCREEN_WIDTH = 400, SCREEN_HEIGHT = 300;
@@ -135,25 +180,27 @@ var GAME = function() {
 	// camera attributes
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	// set up camera
-	camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	// add the camera to the scene
-	scene.add(camera);
+	this.scene.add(this.camera);
 	// the camera defaults to position (0,0,0)
 	// so pull it back (z = 400) and up (y = 100) and set the angle towards
 	// the scene origin
-	camera.position.set(0, 150, 400);
-	camera.lookAt(scene.position);
+	this.camera.position.set(600, 400, -600);
+	this.camera.lookAt(this.scene.position);
 
-	scene.add(createRulerPlane());
-	scene.add(createSphere());
-	scene.add(createLight());
-	scene.add(new THREE.AxisHelper(100));
+	this.createRulerPlane(this.scene);
+	this.createSphere(this.scene);
+	this.createLights(this.scene);
+	// this.scene.add(new THREE.AxisHelper(100));
+	this.loadSkybox(this.scene);
+	this.loadMonster();
 
-	initScreenEvents();
-	initControls();
-	initStats();
+	this.initScreenEvents();
+	this.initControls();
+	this.initStats();
 
-	log("rendering...");
-	animateScene();
+	this.log("rendering...");
+	this.animateScene();
     };
 };

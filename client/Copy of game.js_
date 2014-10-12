@@ -1,0 +1,197 @@
+var GAME = GAME || {};
+
+GAME = function() {
+};
+
+GAME.prototype = {
+
+    constructor : GAME,
+
+    container : document.body,
+
+    scene : new THREE.Scene(),
+    renderer : undefined,
+    camera : undefined,
+    keyboard : new THREEx.KeyboardState(),
+    clock : new THREE.Clock(),
+    controls : undefined,
+    stats : undefined,
+
+    loader : new THREEx.UniversalLoader(),
+
+    // Angles to Rads
+    toRad : function(angle) {
+	return angle * 3.14 / 180;
+    },
+
+    log : function(msg) {
+	console.log("GAME:: " + msg);
+    },
+
+    // Render the scene. Map the 3D world to the 2D screen.
+    renderScene : function() {
+	renderer.render(scene, camera);
+    },
+
+    update : function() {
+	// delta = change in time since last call (in seconds)
+	THREE.AnimationHandler.update(clock.getDelta());
+	controls.update();
+	stats.update();
+    },
+
+    // Animate the scene and call rendering.
+    animateScene : function() {
+//	function animate() {
+//	    requestAnimationFrame(animate);
+//	    this.renderScene();
+//	    this.update();
+//	}
+//	requestAnimationFrame(animate);
+    },
+
+    createRulerPlane : function() {
+	var geo = new THREE.PlaneGeometry(1000, 1000, 100, 100);
+	var mat = new THREE.MeshBasicMaterial({
+	    color : 0xaaaaaa,
+	    wireframe : true
+	});
+	var plane = new THREE.Mesh(geo, mat);
+	plane.rotateX(this.toRad(90));
+	return plane;
+    },
+
+    createSphere : function() {
+	// Sphere parameters: radius, segments along width, segments along
+	// height
+	var sphereGeometry = new THREE.SphereGeometry(50, 32, 16);
+	// use a "lambert" material rather than "basic" for realistic lighting.
+	// (don't forget to add (at least one) light!)
+	var sphereMaterial = new THREE.MeshLambertMaterial({
+	    color : 0x8888ff
+	});
+	var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+	sphere.position.set(100, 50, -50);
+	return sphere;
+    },
+
+    createLight : function() {
+	// Light
+	// var light = new THREE.PointLight(0xffffff);
+	// light.position.x = 20;
+	// light.position.y = 500;
+	// light.position.z = 100;
+	// LIGHT
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0, 250, 0);
+
+	return light;
+    },
+
+    initControls : function() {
+	// move mouse and: left click to rotate,
+	// middle click to zoom,
+	// right click to pan
+	this.controls = new THREE.OrbitControls(this.camera, this.container);
+    },
+
+    initStats : function() {
+	// displays current and past frames per second attained by scene
+	this.stats = new Stats();
+	this.stats.domElement.style.position = 'absolute';
+	this.stats.domElement.style.top = '0px';
+	this.stats.domElement.style.zIndex = 100;
+	this.container.appendChild(this.stats.domElement);
+    },
+
+    initScreenEvents : function() {
+	// automatically resize renderer
+	THREEx.WindowResize(this.renderer, this.camera);
+	// toggle full-screen on given key press
+	THREEx.FullScreen.bindKey({
+	    charCode : 'm'.charCodeAt(0)
+	});
+    },
+
+    loadCollada : function(path, modifier) {
+	this.loader.load(path, function(object3d) {
+	    object3d.traverse(function(child) {
+		if (child instanceof THREE.SkinnedMesh) {
+		    var animation = new THREE.Animation(child, child.geometry.animation);
+		    animation.play();
+		}
+	    });
+
+	    // this function will be notified when the model is loaded
+	    if (modifier)
+		modifier(object3d);
+	    this.scene.add(object3d);
+	});
+    },
+
+    loadMonster : function() {
+	this.loadCollada('models/monster.dae');
+    },
+
+    loadSkybox : function() {
+	this.loadCollada('models/skybox.dae', function(object3d) {
+	    object3d.scale.x = object3d.scale.y = object3d.scale.z = 50;
+	});
+    },
+
+    run : function() {
+	if (Detector.webgl) {
+	    renderer = new THREE.WebGLRenderer({
+		antialias : true
+	    });
+	} else {
+	    renderer = new THREE.CanvasRenderer();
+	}
+
+	// Set the background color of the renderer to black, with full opacity
+	renderer.setClearColor(0x000000, 1);
+
+	// Get the size of the inner window (content area) to create a full size
+	// renderer
+	var canvasWidth = window.innerWidth;
+	var canvasHeight = window.innerHeight;
+
+	// Set the renderers size to the content areas size
+	renderer.setSize(canvasWidth, canvasHeight);
+
+	// Get the DIV element from the HTML document by its ID and append the
+	// renderers DOM object to it
+	// document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
+	this.container.appendChild(renderer.domElement);
+
+	// set the view size in pixels (custom or according to window size)
+	// var SCREEN_WIDTH = 400, SCREEN_HEIGHT = 300;
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	// camera attributes
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+	// set up camera
+	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+	// add the camera to the scene
+	this.scene.add(this.camera);
+	// the camera defaults to position (0,0,0)
+	// so pull it back (z = 400) and up (y = 100) and set the angle towards
+	// the scene origin
+	this.camera.position.set(0, 150, 400);
+	this.camera.lookAt(this.scene.position);
+
+	this.scene.add(this.createRulerPlane());
+	this.scene.add(this.createSphere());
+	this.scene.add(this.createLight());
+	this.scene.add(new THREE.AxisHelper(100));
+	this.loadSkybox();
+	this.loadMonster();
+
+	this.initScreenEvents();
+	this.initControls();
+	this.initStats();
+
+	this.log("rendering...");
+	this.animateScene();
+    },
+
+};
