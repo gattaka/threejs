@@ -3,9 +3,15 @@ var GAME = GAME || {};
 GAME = function() {
 
     this.container = document.body;
-    this.scene = new THREE.Scene();
+
     this.renderer = undefined;
+
+    this.scene = new THREE.Scene();
     this.camera = undefined;
+
+    this.sceneOrtho = new THREE.Scene();
+    this.cameraOrtho = undefined;
+
     this.keyboard = new THREEx.KeyboardState();
     this.clock = new THREE.Clock();
     this.controls = undefined;
@@ -38,25 +44,57 @@ GAME = function() {
 	THREEx.FullScreen.bindKey({
 	    charCode : 'm'.charCodeAt(0)
 	});
+
+	document.addEventListener("mousemove", function(event) {
+	    // veškeré on-mouse events
+	}, false);
     };
 
     // Animate the scene and call rendering.
     this.animateScene = function() {
+	var renderer = this.renderer;
+	var scene = this.scene;
+	var camera = this.camera;
+	var sceneOrtho = this.sceneOrtho;
+	var cameraOrtho = this.cameraOrtho;
+	var controls = this.controls;
+	var stats = this.stats;
+	var clock = this.clock;
+
 	// closure !
-	var animate = function(renderer, scene, camera, controls, stats, clock) {
+	var animate = function() {
 	    return function() {
 		requestAnimationFrame(arguments.callee);
+		renderer.clear();
 		renderer.render(scene, camera);
+		renderer.clearDepth();
+		renderer.render(sceneOrtho, cameraOrtho);
 		THREE.AnimationHandler.update(clock.getDelta());
 		controls.update();
 		stats.update();
 	    };
 	};
-	var animateClosure = animate(this.renderer, this.scene, this.camera, this.controls, this.stats, this.clock);
+	var animateClosure = animate();
 	animateClosure();
     };
 
-    this.createRulerPlane = function(scene) {
+    this.createFrame = function(scene) {
+	var texture = THREE.ImageUtils.loadTexture('textures/frame.png');
+	var material = new THREE.SpriteMaterial({
+	    map : texture
+	});
+	var frameSprite = new THREE.Sprite(material);
+	var fw = 198;
+	var fh = 247;
+	frameSprite.scale.set(fw, fh, 1.0);
+	var sw = window.innerWidth;
+	var sh = window.innerHeight;
+	var offset = 20;
+	frameSprite.position.set(sw / 2 - fw / 2 - offset, sh / 2 - fh / 2 - offset, 1.0);
+	this.sceneOrtho.add(frameSprite);
+    }
+
+    this.createPlane = function(scene) {
 	// floor: mesh to receive shadows
 	var floorTexture = new THREE.ImageUtils.loadTexture('textures/Pavement_Broken_UV_H_CM_1.jpg');
 	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
@@ -98,13 +136,14 @@ GAME = function() {
 	spotlight.shadowCameraVisible = false;
 	spotlight.shadowDarkness = 0.75;
 	spotlight.intensity = 0.7;
+	spotlight.shadowMapWidth = 4096; // default is 512
+	spotlight.shadowMapHeight = 4096; // default is 512
 	// must enable shadow casting ability for the light
 	spotlight.castShadow = true;
 	scene.add(spotlight);
     };
 
-    this.loadCollada = function(path, modifier) {
-	var scene = this.scene;
+    this.loadCollada = function(path, scene, modifier) {
 	this.loader.load(path, function(object3d) {
 	    object3d.traverse(function(child) {
 		child.castShadow = true;
@@ -122,18 +161,39 @@ GAME = function() {
 	});
     };
 
-    this.loadMonster = function() {
-	this.loadCollada('models/monster.dae', function(o) {
+    this.createGrave = function(scene) {
+	this.loadCollada('models/lava_test.dae', scene, function(o) {
 	    o.castShadow = true;
 	    o.receiveShadow = true;
+	    o.scale.set(10, 10, 10);
+	    o.position.set(50, 70, 100);
+	});
+
+	var lava2geo = new THREE.BoxGeometry(50, 50, 50);
+	var lavaTexture = new THREE.ImageUtils.loadTexture('models/Lava_Texture_by_dying_soul_stock.jpg');
+	// Note the change to Lambert material.
+	var floorMaterial = new THREE.MeshBasicMaterial({
+	    map : lavaTexture,
+	});
+	var lavaMesh = new THREE.Mesh(lava2geo, floorMaterial);
+	lavaMesh.position.set(100, 50, 100);
+	lavaMesh.castShadow = true;
+	lavaMesh.receiveShadow = true;
+	scene.add(lavaMesh);
+    };
+
+    this.createMonster = function(scene) {
+	this.loadCollada('models/monster.dae', scene, function(o) {
+	    // o.castShadow = true;
+	    // o.receiveShadow = true;
 	});
     };
 
-    this.loadSkybox = function(scene) {
+    this.createSkybox = function(scene) {
 	var imagePrefix = "textures/Skybox-";
 	var directions = [ "Right", "Left", "Top", "Bottom", "Front", "Back" ];
 	var imageSuffix = ".bmp";
-	var skyGeometry = new THREE.CubeGeometry(5000, 5000, 5000);
+	var skyGeometry = new THREE.BoxGeometry(5000, 5000, 5000);
 
 	var materialArray = [];
 	for (var i = 0; i < 6; i++)
@@ -158,43 +218,32 @@ GAME = function() {
 
 	// Set the background color of the renderer to black, with full opacity
 	this.renderer.setClearColor(0x000000, 1);
+	this.renderer.autoClear = false;
 	this.renderer.shadowMapEnabled = true;
 	this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
-	// Get the size of the inner window (content area) to create a full size
-	// renderer
-	var canvasWidth = window.innerWidth;
-	var canvasHeight = window.innerHeight;
+	var SCREEN_WIDTH = window.innerWidth;
+	var SCREEN_HEIGHT = window.innerHeight;
 
-	// Set the renderers size to the content areas size
-	this.renderer.setSize(canvasWidth, canvasHeight);
-
-	// Get the DIV element from the HTML document by its ID and append the
-	// renderers DOM object to it
-	// document.getElementById("WebGLCanvas").appendChild(renderer.domElement);
+	this.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	this.container.appendChild(this.renderer.domElement);
 
-	// set the view size in pixels (custom or according to window size)
-	// var SCREEN_WIDTH = 400, SCREEN_HEIGHT = 300;
-	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
-	// camera attributes
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-	// set up camera
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
-	// add the camera to the scene
 	this.scene.add(this.camera);
-	// the camera defaults to position (0,0,0)
-	// so pull it back (z = 400) and up (y = 100) and set the angle towards
-	// the scene origin
 	this.camera.position.set(600, 400, -600);
 	this.camera.lookAt(this.scene.position);
 
-	this.createRulerPlane(this.scene);
+	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, -SCREEN_HEIGHT / 2, 1, 10);
+	this.cameraOrtho.position.z = 10;
+
+	this.createPlane(this.scene);
 	this.createSphere(this.scene);
 	this.createLights(this.scene);
-	// this.scene.add(new THREE.AxisHelper(100));
-	this.loadSkybox(this.scene);
-	this.loadMonster();
+	this.createSkybox(this.scene);
+	this.createMonster(this.scene);
+	this.createGrave(this.scene);
+	this.createFrame(this.scene);
 
 	this.initScreenEvents();
 	this.initControls();
