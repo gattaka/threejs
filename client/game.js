@@ -41,6 +41,7 @@ GAME = function() {
 
     this.initScreenEvents = function() {
 	THREEx.WindowResize(this.renderer, this.camera);
+	THREEx.WindowResize(this.renderer, this.cameraOrtho);
 	THREEx.FullScreen.bindKey({
 	    charCode : 'm'.charCodeAt(0)
 	});
@@ -129,6 +130,9 @@ GAME = function() {
     };
 
     this.createLights = function(scene) {
+	var amblight = new THREE.AmbientLight(0x555544);
+	scene.add(amblight);
+
 	// spotlight #1 -- yellow, dark shadow
 	var spotlight = new THREE.SpotLight(0xffffaa);
 	spotlight.position.set(-700, 700, 700);
@@ -136,8 +140,8 @@ GAME = function() {
 	spotlight.shadowCameraVisible = false;
 	spotlight.shadowDarkness = 0.75;
 	spotlight.intensity = 0.7;
-	spotlight.shadowMapWidth = 4096; // default is 512
-	spotlight.shadowMapHeight = 4096; // default is 512
+	spotlight.shadowMapWidth = 1024; // default is 512
+	spotlight.shadowMapHeight = 1024; // default is 512
 	// must enable shadow casting ability for the light
 	spotlight.castShadow = true;
 	scene.add(spotlight);
@@ -161,32 +165,53 @@ GAME = function() {
 	});
     };
 
-    this.createGrave = function(scene) {
+    this.createItems = function(scene) {
 	this.loadCollada('models/lava_test.dae', scene, function(o) {
-	    o.castShadow = true;
-	    o.receiveShadow = true;
 	    o.scale.set(10, 10, 10);
 	    o.position.set(50, 70, 100);
 	});
 
-	var lava2geo = new THREE.BoxGeometry(50, 50, 50);
-	var lavaTexture = new THREE.ImageUtils.loadTexture('models/Lava_Texture_by_dying_soul_stock.jpg');
-	// Note the change to Lambert material.
-	var floorMaterial = new THREE.MeshBasicMaterial({
-	    map : lavaTexture,
+	this.loadCollada('models/Nevermore.dae', scene, function(o) {
+	    o.scale.set(1, 1, 1);
+	    o.position.set(-200, 0, -200);
 	});
-	var lavaMesh = new THREE.Mesh(lava2geo, floorMaterial);
-	lavaMesh.position.set(100, 50, 100);
-	lavaMesh.castShadow = true;
-	lavaMesh.receiveShadow = true;
-	scene.add(lavaMesh);
+
+	this.loadCollada('models/tomb.dae', scene, function(o) {
+	    o.scale.set(10, 10, 10);
+	    o.position.set(10, 70, 140);
+	});
+    }
+
+    this.createCSG = function(scene) {
+
+	var lavaTexture = new THREE.ImageUtils.loadTexture('models/Lava_Texture_by_dying_soul_stock.jpg');
+	var cube_geometry = new THREE.CubeGeometry(3, 3, 3);
+	var cube_mesh = new THREE.Mesh(cube_geometry);
+	cube_mesh.position.set(-6,1,0);
+	var cube_bsp = new ThreeBSP(cube_mesh);
+
+	var sphere_geometry = new THREE.SphereGeometry(2, 32, 32);
+	var sphere_mesh = new THREE.Mesh(sphere_geometry);
+	sphere_mesh.position.x = -7;
+	var sphere_bsp = new ThreeBSP(sphere_mesh);
+
+	var subtract_bsp = cube_bsp.subtract(sphere_bsp);
+	var result = subtract_bsp.toMesh(new THREE.MeshLambertMaterial({
+	    shading : THREE.SmoothShading,
+	    map : lavaTexture
+	}));
+	result.geometry.computeVertexNormals();
+	
+	result.castShadow = true;
+	result.receiveShadow = true;
+	result.scale.set(20,20,20);
+	result.position.set(100,50,80);
+	
+	scene.add(result);
     };
 
     this.createMonster = function(scene) {
-	this.loadCollada('models/monster.dae', scene, function(o) {
-	    // o.castShadow = true;
-	    // o.receiveShadow = true;
-	});
+	this.loadCollada('models/monster.dae', scene);
     };
 
     this.createSkybox = function(scene) {
@@ -220,6 +245,7 @@ GAME = function() {
 	this.renderer.setClearColor(0x000000, 1);
 	this.renderer.autoClear = false;
 	this.renderer.shadowMapEnabled = true;
+	// this.renderer.shadowMapType = THREE.PCFShadowMap;
 	this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
 	var SCREEN_WIDTH = window.innerWidth;
@@ -231,7 +257,8 @@ GAME = function() {
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
-	this.camera.position.set(600, 400, -600);
+	// this.camera.position.set(600, 400, -600);
+	this.camera.position.set(50, 100, 200);
 	this.camera.lookAt(this.scene.position);
 
 	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, -SCREEN_HEIGHT / 2, 1, 10);
@@ -242,8 +269,11 @@ GAME = function() {
 	this.createLights(this.scene);
 	this.createSkybox(this.scene);
 	this.createMonster(this.scene);
-	this.createGrave(this.scene);
+	this.createItems(this.scene);
+	this.createCSG(this.scene);
 	this.createFrame(this.scene);
+
+	this.scene.add(new THREE.AxisHelper(100));
 
 	this.initScreenEvents();
 	this.initControls();
