@@ -18,6 +18,8 @@ GAME = function() {
     this.stats = undefined;
     this.loader = new THREEx.UniversalLoader();
 
+    this.rock = undefined;
+
     this.log = function(msg) {
 	console.log("GAME:: " + msg);
     };
@@ -53,6 +55,9 @@ GAME = function() {
 
     // Animate the scene and call rendering.
     this.animateScene = function() {
+
+	var game = this;
+
 	var renderer = this.renderer;
 	var scene = this.scene;
 	var camera = this.camera;
@@ -61,6 +66,8 @@ GAME = function() {
 	var controls = this.controls;
 	var stats = this.stats;
 	var clock = this.clock;
+	var keyboard = this.keyboard;
+	var rock = this.rock;
 
 	// closure !
 	var animate = function() {
@@ -73,6 +80,7 @@ GAME = function() {
 		THREE.AnimationHandler.update(clock.getDelta());
 		controls.update();
 		stats.update();
+		game.hitCheck(game);
 	    };
 	};
 	var animateClosure = animate();
@@ -114,21 +122,6 @@ GAME = function() {
 	scene.add(floor);
     };
 
-    this.createSphere = function(scene) {
-	// Sphere parameters: radius, segments along width, segments along
-	// height
-	var sphereGeometry = new THREE.SphereGeometry(50, 32, 16);
-	// use a "lambert" material rather than "basic" for realistic lighting.
-	// (don't forget to add (at least one) light!)
-	var sphereMaterial = new THREE.MeshLambertMaterial({
-	    color : 0x8888ff
-	});
-	var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-	sphere.position.set(100, 50, -50);
-	sphere.castShadow = true;
-	scene.add(sphere);
-    };
-
     this.createLights = function(scene) {
 	var amblight = new THREE.AmbientLight(0x555544);
 	scene.add(amblight);
@@ -166,52 +159,95 @@ GAME = function() {
     };
 
     this.createItems = function(scene) {
-	this.loadCollada('models/lava_test.dae', scene, function(o) {
-	    o.scale.set(10, 10, 10);
-	    o.position.set(50, 70, 100);
-	});
+	// this.loadCollada('models/lava_test.dae', scene, function(o) {
+	// o.scale.set(10, 10, 10);
+	// o.position.set(50, 70, 100);
+	// });
+    }
 
-	this.loadCollada('models/Nevermore.dae', scene, function(o) {
-	    o.scale.set(1, 1, 1);
-	    o.position.set(-200, 0, -200);
-	});
+    this.hitCheck = function(game) {
 
-	this.loadCollada('models/tomb.dae', scene, function(o) {
-	    o.scale.set(10, 10, 10);
-	    o.position.set(10, 70, 140);
-	});
+	var keyboard = game.keyboard;
+	var rock = game.rock;
+	var scene = game.scene;
+
+	// cooldown -- TODO přepsat, aktuálně závislé na FPS
+	if (keyboard.lastTime == undefined) {
+	    keyboard.cooldown = 5;
+	    keyboard.lastTime = 0;
+	} else {
+	    if (keyboard.lastTime < keyboard.cooldown) {
+		keyboard.lastTime++;
+		return;
+	    }
+	}
+
+	if (keyboard.pressed("w") == true) {
+	    rock.material.wireframe = !rock.material.wireframe;
+	    keyboard.lastTime = 0
+	}
+
+	if (keyboard.pressed("h") == true) {
+
+	    var rockMaterial = rock.material;
+
+	    var sphere_geometry = new THREE.IcosahedronGeometry(80, 1);
+	    var sphere_mesh = new THREE.Mesh(sphere_geometry);
+	    sphere_mesh.position.z = 110;
+	    sphere_mesh.position.x = -100 + (Math.random() * 1000) % 200;
+	    sphere_mesh.position.y = 0 + (Math.random() * 1000) % 200;
+	    var sphere_bsp = new ThreeBSP(sphere_mesh);
+	    var cube_bsp = new ThreeBSP(rock);
+	    var subtract_bsp = cube_bsp.subtract(sphere_bsp);
+	    var rock2 = subtract_bsp.toMesh(rockMaterial);
+
+	    for (i = 0; i < 2; i++) {
+
+		var side = 200;
+		var supplementGeo = new THREE.BoxGeometry(side, side, side);
+		var supplementMesh = new THREE.Mesh(supplementGeo, rockMaterial);
+		supplementMesh.position.set(0, 100, 0);
+
+		var supplement_bsp = new ThreeBSP(supplementMesh);
+		var cube_bsp = new ThreeBSP(rock2);
+		var subtract_bsp = supplement_bsp.subtract(cube_bsp);
+		var rock2 = subtract_bsp.toMesh(rockMaterial);
+		rock2.geometry.computeVertexNormals();
+
+	    }
+	    
+	    rock2.castShadow = true;
+	    rock2.receiveShadow = true;
+
+	    scene.remove(rock);
+	    scene.add(rock2);
+	    game.rock = rock2;
+	    
+	    keyboard.lastTime = 0
+	}
     }
 
     this.createCSG = function(scene) {
 
-	var lavaTexture = new THREE.ImageUtils.loadTexture('models/Lava_Texture_by_dying_soul_stock.jpg');
-	var cube_geometry = new THREE.CubeGeometry(3, 3, 3);
-	var cube_mesh = new THREE.Mesh(cube_geometry);
-	cube_mesh.position.set(-6,1,0);
-	var cube_bsp = new ThreeBSP(cube_mesh);
-
-	var sphere_geometry = new THREE.SphereGeometry(2, 32, 32);
-	var sphere_mesh = new THREE.Mesh(sphere_geometry);
-	sphere_mesh.position.x = -7;
-	var sphere_bsp = new ThreeBSP(sphere_mesh);
-
-	var subtract_bsp = cube_bsp.subtract(sphere_bsp);
-	var result = subtract_bsp.toMesh(new THREE.MeshLambertMaterial({
+	var rockTexture = new THREE.ImageUtils.loadTexture('models/texture8.jpg');
+	var rockMaterial = new THREE.MeshLambertMaterial({
 	    shading : THREE.SmoothShading,
-	    map : lavaTexture
-	}));
-	result.geometry.computeVertexNormals();
-	
-	result.castShadow = true;
-	result.receiveShadow = true;
-	result.scale.set(20,20,20);
-	result.position.set(100,50,80);
-	
-	scene.add(result);
-    };
+	    map : rockTexture,
+	    wireframe : true
+	});
 
-    this.createMonster = function(scene) {
-	this.loadCollada('models/monster.dae', scene);
+	var side = 200;
+	var rockGeometry = new THREE.BoxGeometry(side, side, side);
+	var rock = new THREE.Mesh(rockGeometry, rockMaterial);
+
+	rock.castShadow = true;
+	rock.receiveShadow = true;
+	rock.scale.set(1, 1, 1);
+	rock.position.set(0, side / 2, 0);
+
+	this.rock = rock;
+
+	scene.add(rock);
     };
 
     this.createSkybox = function(scene) {
@@ -257,18 +293,15 @@ GAME = function() {
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
-	// this.camera.position.set(600, 400, -600);
-	this.camera.position.set(50, 100, 200);
+	this.camera.position.set(500, 200, 500);
 	this.camera.lookAt(this.scene.position);
 
 	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, -SCREEN_HEIGHT / 2, 1, 10);
 	this.cameraOrtho.position.z = 10;
 
 	this.createPlane(this.scene);
-	this.createSphere(this.scene);
 	this.createLights(this.scene);
 	this.createSkybox(this.scene);
-	this.createMonster(this.scene);
 	this.createItems(this.scene);
 	this.createCSG(this.scene);
 	this.createFrame(this.scene);
