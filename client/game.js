@@ -200,9 +200,8 @@ GAME = function() {
 	    var cube_bsp = new ThreeBSP(rock);
 	    var subtract_bsp = cube_bsp.subtract(sphere_bsp);
 	    var rock2 = subtract_bsp.toMesh(rockMaterial);
-
-	    for (i = 0; i < 2; i++) {
-
+	    
+	    for (var i = 0; i < 2; i++) {
 		var side = 200;
 		var supplementGeo = new THREE.BoxGeometry(side, side, side);
 		var supplementMesh = new THREE.Mesh(supplementGeo, rockMaterial);
@@ -211,19 +210,90 @@ GAME = function() {
 		var supplement_bsp = new ThreeBSP(supplementMesh);
 		var cube_bsp = new ThreeBSP(rock2);
 		var subtract_bsp = supplement_bsp.subtract(cube_bsp);
-		var rock2 = subtract_bsp.toMesh(rockMaterial);
-		rock2.geometry.computeVertexNormals();
-
+		rock2 = subtract_bsp.toMesh(rockMaterial);
 	    }
 	    
+//	    var lineLength = function(a, b, c) {
+//		ab = Math.sqrt(Math.pow(Math.abs(a.x - b.x), 2) + Math.pow(Math.abs(a.y - b.y), 2) + Math.pow(Math.abs(a.z - b.z), 2));
+//		bc = Math.sqrt(Math.pow(Math.abs(b.x - c.x), 2) + Math.pow(Math.abs(b.y - c.y), 2) + Math.pow(Math.abs(b.z - c.z), 2));
+//		ca = Math.sqrt(Math.pow(Math.abs(c.x - a.x), 2) + Math.pow(Math.abs(c.y - a.y), 2) + Math.pow(Math.abs(c.z - a.z), 2));
+//		return ab + bc + ca;
+//	    }
+//	    
+//	    for (var i = 0; i < geom.faces.length; i++) {
+//		var face = geom.faces[i];
+//		var a = geom.vertices[face.a];
+//		var b = geom.vertices[face.b];
+//		var c = geom.vertices[face.c];
+//		if (lineLength(a, b, c) < 100) {
+//		    console.log("Vertex collapsed");
+//		    geom.faces.splice(i, 1);
+//		    for (var j = 0; j < geom.faces.length; j++) {
+//			var f = geom.faces[j];
+//			if (f.a == face.b || f.a == face.c)
+//			    f.a = face.a;
+//			if (f.b == face.b || f.b == face.c)
+//			    f.b = face.a;
+//			if (f.c == face.b || f.c == face.c)
+//			    f.c = face.a;
+//		    }
+//		}
+//	    }
+
+//	    var rock2 = new THREE.Mesh(geom, rockMaterial);
+	    rock2.position.set(0, 100, 0);
+	    rock2.geometry.computeVertexNormals();
 	    rock2.castShadow = true;
 	    rock2.receiveShadow = true;
 
 	    scene.remove(rock);
 	    scene.add(rock2);
 	    game.rock = rock2;
-	    
+
 	    keyboard.lastTime = 0
+	}
+
+	if (keyboard.pressed("i") == true) {
+
+	    var rockMaterial = rock.material;
+
+	    var side = 200;
+	    var supplementGeo = new THREE.BoxGeometry(side, side, side);
+	    var supplementMesh = new THREE.Mesh(supplementGeo, rockMaterial);
+	    supplementMesh.position.set(0, 100, 0);
+
+	    var supplement_bsp = new ThreeBSP(supplementMesh);
+	    var cube_bsp = new ThreeBSP(rock);
+	    var subtract_bsp = supplement_bsp.subtract(cube_bsp);
+	    var geom = subtract_bsp.toGeometry();
+
+	    var rock2 = new THREE.Mesh(geom, rockMaterial);
+	    rock2.geometry.computeVertexNormals();
+	    rock2.castShadow = true;
+	    rock2.receiveShadow = true;
+
+	    scene.remove(rock);
+	    scene.add(rock2);
+	    game.rock = rock2;
+
+	    keyboard.lastTime = 0
+	}
+
+	if (keyboard.pressed("d") == true) {
+
+	    rock.geometry.mergeVertices(500);
+	    rock.geometry.computeVertexNormals();
+	    rock = new THREE.Mesh(rock.geometry, rock.material);
+	    rock.castShadow = true;
+	    rock.receiveShadow = true;
+
+	    scene.remove(game.rock);
+	    scene.add(rock);
+	    rock.scale.set(1, 1, 1);
+	    rock.position.set(0, 200 / 2, 0);
+	    game.rock = rock;
+
+	    keyboard.lastTime = 0;
 	}
     }
 
@@ -248,6 +318,106 @@ GAME = function() {
 	this.rock = rock;
 
 	scene.add(rock);
+
+    }
+
+    this.createManualMesh = function(scene) {
+
+	// 1---2
+	// | / |
+	// 0---3
+
+	var geom = new THREE.Geometry();
+	var v0 = new THREE.Vector3(0, 0, 0);
+	var v1 = new THREE.Vector3(0, 200, 0);
+	var v2 = new THREE.Vector3(0, 200, 20);
+	var v3 = new THREE.Vector3(0, 0, 300);
+
+	var v4 = new THREE.Vector3(-200, 0, 100);
+	var v5 = new THREE.Vector3(-20, 200, 20);
+
+	geom.vertices.push(v0);
+	geom.vertices.push(v1);
+	geom.vertices.push(v2);
+	geom.vertices.push(v3);
+	geom.vertices.push(v4);
+	geom.vertices.push(v5);
+
+	geom.faces.push(new THREE.Face3(0, 1, 2));
+	geom.faces.push(new THREE.Face3(2, 3, 0));
+
+	// bottom
+	geom.faces.push(new THREE.Face3(0, 3, 4));
+
+	geom.faces.push(new THREE.Face3(0, 4, 1));
+	geom.faces.push(new THREE.Face3(1, 4, 5));
+
+	geom.faces.push(new THREE.Face3(2, 4, 3));
+	geom.faces.push(new THREE.Face3(2, 5, 4));
+
+	// top
+	geom.faces.push(new THREE.Face3(1, 5, 2));
+	// delete geom.faces[7];
+
+	// for (var i = 0; i < geom.faces.length; i++) {
+	// if (i == 7) {
+	// var face = geom.faces.splice(i, 1)[0];
+	// // var a = geom.vertices[face.a];
+	// // var b = geom.vertices[face.b];
+	// // var c = geom.vertices[face.c];
+	// for (var j = 0; j < geom.faces.length; j++) {
+	// var f = geom.faces[j];
+	// if (f.a == face.b || f.a == face.c)
+	// f.a = face.a;
+	// if (f.b == face.b || f.b == face.c)
+	// f.b = face.a;
+	// if (f.c == face.b || f.c == face.c)
+	// f.c = face.a;
+	// }
+	// }
+	// }
+
+	var lineLength = function(a, b, c) {
+	    ab = Math.sqrt(Math.pow(Math.abs(a.x - b.x), 2) + Math.pow(Math.abs(a.y - b.y), 2) + Math.pow(Math.abs(a.z - b.z), 2));
+	    bc = Math.sqrt(Math.pow(Math.abs(b.x - c.x), 2) + Math.pow(Math.abs(b.y - c.y), 2) + Math.pow(Math.abs(b.z - c.z), 2));
+	    ca = Math.sqrt(Math.pow(Math.abs(c.x - a.x), 2) + Math.pow(Math.abs(c.y - a.y), 2) + Math.pow(Math.abs(c.z - a.z), 2));
+	    return ab + bc + ca;
+	}
+
+	for (var i = 0; i < geom.faces.length; i++) {
+	    var face = geom.faces[i];
+	    var a = geom.vertices[face.a];
+	    var b = geom.vertices[face.b];
+	    var c = geom.vertices[face.c];
+	    var l = lineLength(a, b, c);
+	    console.log(l);
+	    if (l < 100) {
+		console.log("Vertex collapsed");
+		geom.faces.splice(i, 1);
+		for (var j = 0; j < geom.faces.length; j++) {
+		    var f = geom.faces[j];
+		    if (f.a == face.b || f.a == face.c)
+			f.a = face.a;
+		    if (f.b == face.b || f.b == face.c)
+			f.b = face.a;
+		    if (f.c == face.b || f.c == face.c)
+			f.c = face.a;
+		}
+	    }
+	}
+
+	var rockTexture = new THREE.ImageUtils.loadTexture('models/texture8.jpg');
+	var object = new THREE.Mesh(geom, new THREE.MeshLambertMaterial({
+	    shading : THREE.SmoothShading,
+	// map : rockTexture
+	// wireframe : true
+	}));
+
+	object.castShadow = true;
+	object.receiveShadow = true;
+
+	game.rock = object;
+	scene.add(object);
     };
 
     this.createSkybox = function(scene) {
@@ -304,6 +474,7 @@ GAME = function() {
 	this.createSkybox(this.scene);
 	this.createItems(this.scene);
 	this.createCSG(this.scene);
+	// this.createManualMesh(this.scene);
 	this.createFrame(this.scene);
 
 	this.scene.add(new THREE.AxisHelper(100));
