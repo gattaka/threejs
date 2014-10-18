@@ -200,7 +200,7 @@ GAME = function() {
 	    var cube_bsp = new ThreeBSP(rock);
 	    var subtract_bsp = cube_bsp.subtract(sphere_bsp);
 	    var rock2 = subtract_bsp.toMesh(rockMaterial);
-	    
+
 	    for (var i = 0; i < 2; i++) {
 		var side = 200;
 		var supplementGeo = new THREE.BoxGeometry(side, side, side);
@@ -212,37 +212,49 @@ GAME = function() {
 		var subtract_bsp = supplement_bsp.subtract(cube_bsp);
 		rock2 = subtract_bsp.toMesh(rockMaterial);
 	    }
-	    
-//	    var lineLength = function(a, b, c) {
-//		ab = Math.sqrt(Math.pow(Math.abs(a.x - b.x), 2) + Math.pow(Math.abs(a.y - b.y), 2) + Math.pow(Math.abs(a.z - b.z), 2));
-//		bc = Math.sqrt(Math.pow(Math.abs(b.x - c.x), 2) + Math.pow(Math.abs(b.y - c.y), 2) + Math.pow(Math.abs(b.z - c.z), 2));
-//		ca = Math.sqrt(Math.pow(Math.abs(c.x - a.x), 2) + Math.pow(Math.abs(c.y - a.y), 2) + Math.pow(Math.abs(c.z - a.z), 2));
-//		return ab + bc + ca;
-//	    }
-//	    
-//	    for (var i = 0; i < geom.faces.length; i++) {
-//		var face = geom.faces[i];
-//		var a = geom.vertices[face.a];
-//		var b = geom.vertices[face.b];
-//		var c = geom.vertices[face.c];
-//		if (lineLength(a, b, c) < 100) {
-//		    console.log("Vertex collapsed");
-//		    geom.faces.splice(i, 1);
-//		    for (var j = 0; j < geom.faces.length; j++) {
-//			var f = geom.faces[j];
-//			if (f.a == face.b || f.a == face.c)
-//			    f.a = face.a;
-//			if (f.b == face.b || f.b == face.c)
-//			    f.b = face.a;
-//			if (f.c == face.b || f.c == face.c)
-//			    f.c = face.a;
-//		    }
-//		}
-//	    }
 
-//	    var rock2 = new THREE.Mesh(geom, rockMaterial);
+	    var geom = rock2.geometry;
+	    var lineLength = function(a, b, c) {
+		ab = Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) + Math.pow(a.z - b.z, 2));
+		bc = Math.sqrt(Math.pow(b.x - c.x, 2) + Math.pow(b.y - c.y, 2) + Math.pow(b.z - c.z, 2));
+		ca = Math.sqrt(Math.pow(c.x - a.x, 2) + Math.pow(c.y - a.y, 2) + Math.pow(c.z - a.z, 2));
+		return ab + bc + ca;
+	    }
+
+	    for (var i = 0; i < geom.faces.length; i++) {
+		var face = geom.faces[i];
+		var a = geom.vertices[face.a];
+		var b = geom.vertices[face.b];
+		var c = geom.vertices[face.c];
+		if (lineLength(a, b, c) < 5) {
+		    console.log("Vertex collapsed");
+		    geom.faces.splice(i, 1);
+		    for (var j = 0; j < geom.faces.length; j++) {
+			var f = geom.faces[j];
+			if (f.a == face.b || f.a == face.c)
+			    f.a = face.a;
+			if (f.b == face.b || f.b == face.c)
+			    f.b = face.a;
+			if (f.c == face.b || f.c == face.c)
+			    f.c = face.a;
+		    }
+		    // Nelze mazat ... jinak to rozposune indexy ve všech faces
+		    // if (face.b > face.c) {
+		    // geom.vertices.splice(face.b, 1)
+		    // geom.vertices.splice(face.c, 1)
+		    // } else {
+		    // geom.vertices.splice(face.c, 1)
+		    // geom.vertices.splice(face.b, 1)
+		    // }
+		}
+	    }
+
+	    geom.mergeVertices();
+	    geom.computeVertexNormals();
+	    geom.computeFaceNormals();
+	    rockMaterial.shading = THREE.FlatShading;
+	    var rock2 = new THREE.Mesh(geom, rockMaterial);
 	    rock2.position.set(0, 100, 0);
-	    rock2.geometry.computeVertexNormals();
 	    rock2.castShadow = true;
 	    rock2.receiveShadow = true;
 
@@ -300,7 +312,7 @@ GAME = function() {
     this.createCSG = function(scene) {
 
 	var rockTexture = new THREE.ImageUtils.loadTexture('models/texture8.jpg');
-	var rockMaterial = new THREE.MeshLambertMaterial({
+	var rockMaterial = new THREE.MeshPhongMaterial({
 	    shading : THREE.SmoothShading,
 	    map : rockTexture,
 	    wireframe : true
