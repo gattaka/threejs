@@ -1,5 +1,5 @@
-var GAME = GAME || {};
-GAME.createSkybox = function(scene) {
+GAME.Skybox = GAME.Skybox || {};
+GAME.Skybox.create = function() {
     var imagePrefix = "textures/Skybox-";
     var directions = [ "Right", "Left", "Top", "Bottom", "Front", "Back" ];
     var imageSuffix = ".bmp";
@@ -14,5 +14,5 @@ GAME.createSkybox = function(scene) {
     var skyMaterial = new THREE.MeshFaceMaterial(materialArray);
     var skyBox = new THREE.Mesh(skyGeometry, skyMaterial);
     skyBox.castShadow = false;
-    scene.add(skyBox);
+    return skyBox;
 };

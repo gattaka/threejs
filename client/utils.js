@@ -1,5 +1,5 @@
 var GAME = GAME || {};
-GAME.loadCollada = function(path, scene, modifier, childrenModifier) {
+GAME.loadCollada = function(path, modifier, childrenModifier) {
     var loader = new THREEx.UniversalLoader()
     loader.load(path, function(object3d) {
 	object3d.traverse(function(child) {
@@ -18,7 +18,6 @@ GAME.loadCollada = function(path, scene, modifier, childrenModifier) {
 	// this function will be notified when the model is loaded
 	if (modifier)
 	    modifier(object3d);
-	scene.add(object3d);
     });
 };
 
