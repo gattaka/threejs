@@ -43,19 +43,61 @@ GAME.Level.prototype = {
     amblight : undefined,
     spotlight : undefined,
 
-    createTerrain : function(scene) {
-	var texturePath = 'textures/Dirt 00 seamless.jpg';
+    createTerrainMaterial : function(texturePath) {
 	var texture = new THREE.ImageUtils.loadTexture(texturePath);
 	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 	texture.repeat.set(100, 100);
-	var material = new THREE.MeshLambertMaterial({
+	return new THREE.MeshLambertMaterial({
 	    map : texture,
-	    side : THREE.DoubleSide
+	    side : THREE.DoubleSide,
 	});
-	var heightMap = THREEx.Terrain.allocateHeightMap(100, 200);
+    },
+
+    createTerrain : function(scene) {
+
+	var dirtMaterial = this.createTerrainMaterial('textures/Dirt 00 seamless.jpg');
+	var grassMaterial = this.createTerrainMaterial('textures/Grass 02 seamless.jpg');
+
+	var terrainWidth = 100;
+	var terrainDepth = 100;
+	var heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
 	THREEx.Terrain.simplexHeightMap(heightMap);
 	var geometry = THREEx.Terrain.heightMapToPlaneGeometry(heightMap);
-	var terrain = new THREE.Mesh(geometry, material);
+
+	// materials
+	var materials = [];
+	materials.push(dirtMaterial);
+	materials.push(grassMaterial);
+
+	var circleCenterX = 50;
+	var circleCenterZ = 50;
+	var circleRadius = 10;
+
+	// assign a material to each face (each face is 2 triangles)
+	var l = geometry.faces.length / 2;
+	for (var i = 0; i < l; i++) {
+	    var materialIndex = 0;
+	    var x = i % terrainWidth;
+	    var z = Math.floor(i / terrainWidth);
+
+	    // je bod na kružnici ?
+	    var pointR = Math.pow(x - circleCenterX, 2) + Math.pow(z - circleCenterZ, 2);
+	    var radiusR = Math.pow(circleRadius, 2);
+	    if (pointR >= radiusR - 1 && pointR <= radiusR + 1) {
+		materialIndex = 1;
+	    }
+
+	    // diagonála
+	    // if (x == z)
+	    // materialIndex = 1;
+
+	    var j = 2 * i; // triangle
+	    geometry.faces[j].materialIndex = materialIndex;
+	    geometry.faces[j + 1].materialIndex = materialIndex;
+	}
+
+	// mesh
+	var terrain = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
 
 	terrain.rotateX(-Math.PI / 2);
 	terrain.scale.x = 2000;
@@ -68,6 +110,7 @@ GAME.Level.prototype = {
 	    mesh : terrain,
 	    map : heightMap
 	};
+
     },
 
     createLights : function(scene) {
@@ -114,51 +157,70 @@ GAME.Level.prototype = {
 	// scene.add(c1);
 	// scene.add(c2);
 
-	var terrain = this.terrain;
-	GAME.loadCollada('models/wall.dae', function(obj) {
-	    GAME.Level.plantObject(obj, terrain);
-	    scene.add(obj);
-	}, function(child) {
-	    var start = [ 10, 0, 5 ];
-	    for (var i = 0; i < 2; i++) {
-		var obj = new THREE.Mesh(child.geometry, child.material);
-		obj.position.set(start[0] + i * 16, start[1], start[2]);
-		obj.castShadow = true;
-		obj.receiveShadow = true;
-		GAME.Level.plantObject(obj, terrain);
-		scene.add(obj);
-	    }
-	});
+	// var terrain = this.terrain;
+	// GAME.loadCollada('models/wall.dae', function(obj) {
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// }, function(child) {
+	// var start = [ 10, 0, 5 ];
+	// for (var i = 0; i < 2; i++) {
+	// var obj = new THREE.Mesh(child.geometry, child.material);
+	// obj.position.set(start[0] + i * 16, start[1], start[2]);
+	// obj.castShadow = true;
+	// obj.receiveShadow = true;
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// }
+	// });
 
-	GAME.loadCollada('models/pine.dae', function(obj) {
-	    obj.scale.set(10, 10, 10);
-	    obj.rotateY(Math.PI / 2);
-	    obj.position.set(20, 0, 30);
-	    GAME.Level.plantObject(obj, terrain);
-	    scene.add(obj);
-	}, function(child) {
-	    var wrapSize = 10;
-	    var step = 30;
-	    var offsetX = 50;
-	    var offsetZ = 50;
+	// GAME.loadCollada('models/pine.dae', function(obj) {
+	// obj.scale.set(10, 10, 10);
+	// obj.rotateY(Math.PI / 2);
+	// obj.position.set(20, 0, 30);
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// }, function(child) {
+	// var wrapSize = 10;
+	// var step = 30;
+	// var offsetX = 50;
+	// var offsetZ = 50;
+	//
+	// for (var i = 0; i < 100; i++) {
+	// var obj = new THREE.Mesh(child.geometry, child.material);
+	// obj.castShadow = true;
+	// obj.receiveShadow = true;
+	// obj.scale.multiplyScalar(0.1 + Math.random() / 5);
+	// obj.position.set(offsetX + (i % wrapSize) * step + Math.random() *
+	// step / 2, 0, offsetZ + (i / wrapSize) * step + Math.random() * step /
+	// 2);
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// }
+	// if (child.material) {
+	// child.material.transparent = true;
+	// child.material.depthWrite = false;
+	// }
+	//
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// });
 
-	    for (var i = 0; i < 100; i++) {
-		var obj = new THREE.Mesh(child.geometry, child.material);
-		obj.castShadow = true;
-		obj.receiveShadow = true;
-		obj.scale.multiplyScalar(0.1 + Math.random() / 5);
-		obj.position.set(offsetX + (i % wrapSize) * step + Math.random() * step/2, 0, offsetZ + (i / wrapSize) * step + Math.random() * step/2);
-		GAME.Level.plantObject(obj, terrain);
-		scene.add(obj);
-	    }
-	    if (child.material) {
-		child.material.transparent = true;
-		child.material.depthWrite = false;
-	    }
-
-	    GAME.Level.plantObject(obj, terrain);
-	    scene.add(obj);
-	});
+	// GAME.loadCollada('models/House4/House4Upload.dae', function(obj) {
+	// obj.position.x = -50;
+	// obj.position.z = -50;
+	// GAME.Level.plantObject(obj, terrain);
+	// scene.add(obj);
+	// }, function(child) {
+	// // var start = [ 10, 0, 5 ];
+	// // for (var i = 0; i < 2; i++) {
+	// // var obj = new THREE.Mesh(child.geometry, child.material);
+	// // obj.position.set(start[0] + i * 16, start[1], start[2]);
+	// // obj.castShadow = true;
+	// // obj.receiveShadow = true;
+	// // GAME.Level.plantObject(obj, terrain);
+	// // scene.add(obj);
+	// // }
+	// });
     }
 
 };
