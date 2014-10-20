@@ -1,84 +1,33 @@
 var EDITOR = EDITOR || {};
+
 EDITOR = function() {
+
+    Menu = function() {
+	this.material = 1;
+	this.brushSize = 1;
+    };
 
     this.container = document.body;
     this.renderer = undefined;
     this.scene = new THREE.Scene();
     this.camera = undefined;
-    this.terrain = undefined;
     this.controls = undefined;
     this.stats = undefined;
     this.keyboard = new THREEx.KeyboardState();
-
+    this.terrain = undefined;
+    this.menu = new Menu();
+    this.gui = undefined;
     this.eventDetails = {
 	mouseDown : false,
 	face : undefined,
 	enabled : true
     };
 
-    this.createTerrain = function(scene) {
-
-	var createTerrainMaterial = function(texturePath) {
-	    var texture = new THREE.ImageUtils.loadTexture(texturePath);
-	    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-	    texture.repeat.set(100, 100);
-	    return new THREE.MeshLambertMaterial({
-		map : texture,
-		side : THREE.DoubleSide,
-	    });
-	}
-
-	var dirtMaterial = createTerrainMaterial('textures/Dirt 00 seamless.jpg');
-	var grassMaterial = createTerrainMaterial('textures/Grass 02 seamless.jpg');
-
-	var terrainWidth = 100;
-	var terrainDepth = 100;
-	var heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
-	THREEx.Terrain.simplexHeightMap(heightMap);
-	var geometry = THREEx.Terrain.heightMapToPlaneGeometry(heightMap);
-
-	// materials
-	var materials = [];
-	materials.push(new THREE.MeshBasicMaterial({
-	    color : 'red',
-	    wireframe : true
-	}));
-	materials.push(dirtMaterial);
-	materials.push(grassMaterial);
-
-	var circleCenterX = 50;
-	var circleCenterZ = 50;
-	var circleRadius = 10;
-
-	// assign a material to each face (each face is 2 triangles)
-	var l = geometry.faces.length / 2;
-	for (var i = 0; i < l; i++) {
-	    var materialIndex = 0;
-	    var x = i % terrainWidth;
-	    var z = Math.floor(i / terrainWidth);
-
-	    var j = 2 * i; // triangle
-	    geometry.faces[j].materialIndex = materialIndex;
-	    geometry.faces[j + 1].materialIndex = materialIndex;
-	}
-
-	// mesh
-	var terrain = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-
-	terrain.rotateX(-Math.PI / 2);
-	terrain.scale.x = 2000;
-	terrain.scale.y = 2000;
-	terrain.scale.z = 20;
-
-	terrain.receiveShadow = true;
-	scene.add(terrain);
-	return {
-	    mesh : terrain,
-	    map : heightMap,
-	    width : terrainWidth,
-	    depth : terrainDepth
-	};
-
+    this.createMenu = function(scene) {
+	var gui = new dat.GUI();
+	gui.add(this.menu, 'material', [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]);
+	gui.add(this.menu, 'brushSize', [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]);
+	this.gui = gui;
     }
 
     this.mouseControls = function(camera, renderer, mesh) {
@@ -92,22 +41,12 @@ EDITOR = function() {
 	    if (eventDetails.mouseDown == false)
 		return;
 
+	    // pokud je to stále stejná face jako posledně, nevykresluj
 	    var faceIndex = event.intersect.faceIndex;
 	    if (eventDetails.face == faceIndex)
 		return;
 	    eventDetails.face = faceIndex;
-
-	    console.log("click on terrain, face: " + faceIndex);
-
-	    var geo = editor.terrain.mesh.geometry;
-	    geo.faces[faceIndex].materialIndex = geo.faces[faceIndex].materialIndex == 0 ? 1 : 0;
-	    // geo.elementsNeedUpdate = true;
-	    // geo.colorsNeedUpdate = true;
-	    // geo.elementsNeedUpdate = true;
-	    geo.groupsNeedUpdate = true;
-	    // geo.normalsNeedUpdate = true;
-	    // geo.uvsNeedUpdate = true;
-	    // geo.verticesNeedUpdate = true;
+	    editor.terrain.paintByFaceIndex(faceIndex, editor.menu.material, editor.menu.brushSize);
 	}
 
 	domEvents.addEventListener(mesh, "mousedown", function(event) {
@@ -167,6 +106,30 @@ EDITOR = function() {
 	return stats;
     };
 
+    this.createTerrain = function(scene) {
+	var terrain = new GAME.Terrain(100, 50);
+	
+//	var loader = new THREE.ImageLoader();
+//	var image = loader.load("textures/terrain.png");
+//	var texture = new THREE.Texture(image);
+//	// texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+//	texture.repeat.set(100 * 20 / 1024, 50 * 20 / 1024);
+//	texture.offset.set(0, 0);
+//	texture.needsUpdate = true;
+//	material = new THREE.MeshLambertMaterial({
+//	    map : texture,
+//	    side : THREE.DoubleSide,
+//	});
+
+	terrain.registerMaterialFromPath("textures/terrain/Dirt 00 seamless.jpg");
+	terrain.registerMaterialFromPath("textures/terrain/Grass 02 seamless.jpg");
+	terrain.registerMaterialFromPath("textures/terrain/Dirt-Grass 00 seamless.jpg");
+	
+
+	this.terrain = terrain;
+	scene.add(this.terrain.mesh);
+    }
+
     this.run = function() {
 	if (Detector.webgl) {
 	    this.renderer = new THREE.WebGLRenderer({
@@ -190,15 +153,19 @@ EDITOR = function() {
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
-	this.camera.position.set(0, 3000, 0);
+	this.camera.position.set(0, 2000, 0);
 	this.camera.lookAt(this.scene.position);
+
+	this.createMenu();
+	this.stats = this.createStats(this.container);
+
 	this.scene.fog = new THREE.Fog(0x34583e, 0, 10000);
-	this.terrain = this.createTerrain(this.scene);
+	this.createLights(this.scene);
+	this.createTerrain(this.scene);
+
 	this.controls = new THREE.OrbitControls(this.camera, this.container);
 	this.controls.enabled = false;
 	this.mouseControls(this.camera, this.renderer, this.terrain.mesh);
-	this.stats = this.createStats(this.container);
-	this.createLights(this.scene);
 
 	this.animateScene(this);
     }
