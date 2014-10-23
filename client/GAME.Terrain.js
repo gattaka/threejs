@@ -51,23 +51,37 @@ GAME.Terrain.prototype = {
 	// geo.verticesNeedUpdate = true;
     },
 
-    registerMaterial : function(material, materialIndex) {
-	if (materialIndex == undefined) {
-	    this.mesh.material.materials.push(material);
-	} else {
-	    this.mesh.material.materials[materialIndex] = material;
-	}
-	this.refreshGeometry();
-    },
+    registerMaterialsFromPath : function(texturePath) {
 
-    registerMaterialFromPath : function(texturePath) {
-	var texture = new THREE.ImageUtils.loadTexture(texturePath);
-	texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-	texture.repeat.set(this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments);
-	this.registerMaterial(new THREE.MeshBasicMaterial({
-	    map : texture,
-	// side : THREE.DoubleSide,
-	}));
+	var textures = [];
+
+	for (t in texturePath) {
+	    var texture = new THREE.ImageUtils.loadTexture(texturePath[t]);
+	    textures.push(texture);
+	    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+	    texture.repeat.set(this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments);
+	    this.mesh.material.materials.push(new THREE.MeshBasicMaterial({
+		map : texture,
+	    // side : THREE.DoubleSide,
+	    }));
+	}
+
+	for (i in textures) {
+	    for (j in textures) {
+		if (i == j)
+		    continue;
+		// directions
+		for (var d = 1; d <= 8; d++) {
+		    // TODO přidat parametry ... a co offset?
+		    // this.mesh.geometry.widthSegments,
+		    // this.mesh.geometry.heightSegments
+		    this.mesh.material.materials.push(new GAME.BlendedMaterial(d, textures[i], textures[j]));
+		}
+	    }
+	}
+
+	this.refreshGeometry();
+
     },
 
     paintByFaceIndex : function(faceIndex, materialIndex, brushSize) {

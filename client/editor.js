@@ -108,23 +108,42 @@ EDITOR = function() {
 
     this.createTerrain = function(scene) {
 	var terrain = new GAME.Terrain(100, 50);
-	
-//	var loader = new THREE.ImageLoader();
-//	var image = loader.load("textures/terrain.png");
-//	var texture = new THREE.Texture(image);
-//	// texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-//	texture.repeat.set(100 * 20 / 1024, 50 * 20 / 1024);
-//	texture.offset.set(0, 0);
-//	texture.needsUpdate = true;
-//	material = new THREE.MeshLambertMaterial({
-//	    map : texture,
-//	    side : THREE.DoubleSide,
-//	});
 
-	terrain.registerMaterialFromPath("textures/terrain/Dirt 00 seamless.jpg");
-	terrain.registerMaterialFromPath("textures/terrain/Grass 02 seamless.jpg");
-	terrain.registerMaterialFromPath("textures/terrain/Dirt-Grass 00 seamless.jpg");
-	
+	// var loader = new THREE.ImageLoader();
+	// var image = loader.load("textures/terrain.png");
+	// var texture = new THREE.Texture(image);
+	// // texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+	// texture.repeat.set(100 * 20 / 1024, 50 * 20 / 1024);
+	// texture.offset.set(0, 0);
+	// texture.needsUpdate = true;
+	// material = new THREE.MeshLambertMaterial({
+	// map : texture,
+	// side : THREE.DoubleSide,
+	// });
+
+	var texnames = [ "textures/terrain/Dirt 00 seamless.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
+	 terrain.registerMaterialsFromPath(texnames);
+
+	// var geo = new THREE.PlaneGeometry(20, 20, 20, 20);
+	// var geo = new THREE.BoxGeometry(5, 5, 5);
+	// var geo = new THREE.SphereGeometry(10, 10, 10);
+
+	// var mat = new THREE.MeshBasicMaterial({
+	// wireframe : true
+	// });
+	// var mat = new THREE.MeshFaceMaterial(materials)
+
+	// var tex1 = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00
+	// seamless.jpg");
+	// var tex2 = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02
+	// seamless.jpg");
+	// var mat = new GAME.BlendedMaterial(1, tex1, tex2);
+	//
+	// var terrain = {
+	// mesh : new THREE.Mesh(geo, mat)
+	// };
+	// terrain.mesh.rotation.set(-Math.PI / 2, 0, 0);
+	// terrain.mesh.scale.set(80, 80, 80);
 
 	this.terrain = terrain;
 	scene.add(this.terrain.mesh);
