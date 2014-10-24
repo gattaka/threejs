@@ -75,7 +75,7 @@ GAME.Terrain.prototype = {
 		    // TODO přidat parametry ... a co offset?
 		    // this.mesh.geometry.widthSegments,
 		    // this.mesh.geometry.heightSegments
-		    this.mesh.material.materials.push(new GAME.BlendedMaterial(d, textures[i], textures[j]));
+		    this.mesh.material.materials.push(new GAME.BlendedMaterial(d, textures[i], textures[j], this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments));
 		}
 	    }
 	}

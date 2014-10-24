@@ -51,13 +51,27 @@ SHADER = function() {
 	this.scene.add(this.camera);
 
 	var grass = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02 seamless.jpg");
-	var dir = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00 seamless.jpg");
-	var shaderMaterial = GAME.BlendedMaterial(2, grass, dir);
+	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Pavement_Broken_UV_H_CM_1.jpg");
 
-	var sphereGeo = new THREE.BoxGeometry(20, 20, 20);
-	var sphereMesh = new THREE.Mesh(sphereGeo, shaderMaterial);
+	grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
+	dirt.wrapS = dirt.wrapT = THREE.RepeatWrapping;
+
+	var wireframe = new THREE.MeshBasicMaterial({
+	    color : 'red',
+	    wireframe : true
+	});
+	var shaderMaterial = new GAME.BlendedMaterial(2,grass,dirt,2,2);
+
+	var facesMaterial = new THREE.MeshFaceMaterial([ wireframe, shaderMaterial ]);
+
+	var sphereGeo = new THREE.PlaneGeometry(50, 50, 2, 2);
+
+	sphereGeo.faces[0].materialIndex = 1;
+	sphereGeo.faces[1].materialIndex = 1;
+
+	var sphereMesh = new THREE.Mesh(sphereGeo, facesMaterial);
 	sphereMesh.position.set(0, 0, 0);
-	sphereMesh.rotation.set(10, 0, 5);
+	sphereMesh.rotation.set(-Math.PI / 2, 0, 0);
 	this.scene.add(sphereMesh);
 
 	this.animateScene(this);

@@ -122,7 +122,7 @@ EDITOR = function() {
 	// });
 
 	var texnames = [ "textures/terrain/Dirt 00 seamless.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
-	 terrain.registerMaterialsFromPath(texnames);
+	terrain.registerMaterialsFromPath(texnames);
 
 	// var geo = new THREE.PlaneGeometry(20, 20, 20, 20);
 	// var geo = new THREE.BoxGeometry(5, 5, 5);
