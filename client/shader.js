@@ -51,7 +51,7 @@ SHADER = function() {
 	this.scene.add(this.camera);
 
 	var grass = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02 seamless.jpg");
-	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Pavement_Broken_UV_H_CM_1.jpg");
+	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00 seamless.jpg");
 
 	grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
 	dirt.wrapS = dirt.wrapT = THREE.RepeatWrapping;
@@ -60,18 +60,51 @@ SHADER = function() {
 	    color : 'red',
 	    wireframe : true
 	});
-	var shaderMaterial = new GAME.BlendedMaterial(2,grass,dirt,2,2);
 
-	var facesMaterial = new THREE.MeshFaceMaterial([ wireframe, shaderMaterial ]);
+	var ti = 3;
+	var facesMaterial = new THREE.MeshFaceMaterial([ wireframe, 
+	                                                 new GAME.BlendedMaterial(0,grass,dirt,ti,ti), 
+	                                                 new GAME.BlendedMaterial(1,grass,dirt,ti,ti), 
+	                                                 new GAME.BlendedMaterial(2,grass,dirt,ti,ti),
+	                                                 new GAME.BlendedMaterial(3,grass,dirt,ti,ti),
+	                                                 new GAME.BlendedMaterial(4,grass,dirt,ti,ti),
+	                                                 new GAME.BlendedMaterial(5,grass,dirt,ti,ti),
+	                                                 new GAME.BlendedMaterial(6,grass,dirt,ti,ti),
+	                                                 new GAME.BlendedMaterial(7,grass,dirt,ti,ti),
+	                                                 ]);
 
-	var sphereGeo = new THREE.PlaneGeometry(50, 50, 2, 2);
+	var sphereGeo = new THREE.PlaneGeometry(50, 50, ti, ti);
 
-	sphereGeo.faces[0].materialIndex = 1;
-	sphereGeo.faces[1].materialIndex = 1;
+	sphereGeo.faces[0].materialIndex = 2;
+	sphereGeo.faces[1].materialIndex = 2;
+	
+	sphereGeo.faces[2].materialIndex = 3;
+	sphereGeo.faces[3].materialIndex = 3;
+	
+	sphereGeo.faces[4].materialIndex = 4;
+	sphereGeo.faces[5].materialIndex = 4;
+	
+	sphereGeo.faces[6].materialIndex = 1;
+	sphereGeo.faces[7].materialIndex = 1;
+	
+	sphereGeo.faces[8].materialIndex = 0;
+	sphereGeo.faces[9].materialIndex = 0;
+	
+	sphereGeo.faces[10].materialIndex = 5;
+	sphereGeo.faces[11].materialIndex = 5;
+	
+	sphereGeo.faces[12].materialIndex = 8;
+	sphereGeo.faces[13].materialIndex = 8;
+	
+	sphereGeo.faces[14].materialIndex = 7;
+	sphereGeo.faces[15].materialIndex = 7;
+	
+	sphereGeo.faces[16].materialIndex = 6;
+	sphereGeo.faces[17].materialIndex = 6;
 
 	var sphereMesh = new THREE.Mesh(sphereGeo, facesMaterial);
 	sphereMesh.position.set(0, 0, 0);
-	sphereMesh.rotation.set(-Math.PI / 2, 0, 0);
+	sphereMesh.rotation.set(-Math.PI / 2, 0, Math.PI/2);
 	this.scene.add(sphereMesh);
 
 	this.animateScene(this);
