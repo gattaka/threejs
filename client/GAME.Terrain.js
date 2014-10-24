@@ -29,6 +29,14 @@ GAME.Terrain.prototype = {
     mesh : undefined,
     heightMap : undefined,
 
+    // mapa, ve které je možné hledat dle dvou materiálů jejich přechodové
+    // materiály a jejich směrové varianty
+    blendMap : {},
+
+    // reverzní mapa k blendMap -- podle přechodového materiálu je schopná vydat
+    // informace o tom, které materiály byly spojeny a v jakém směru
+    blendMaterialInfoMap : {},
+
     getMesh : function() {
 	return this.mesh;
     },
@@ -66,16 +74,31 @@ GAME.Terrain.prototype = {
 	    }));
 	}
 
-	for (i in textures) {
-	    for (j in textures) {
+	// projdi všechny zaregistrované textury a vytvoř jejich blend kombinace
+	for (var i = 0; i < textures.length; i++) {
+	    for (var j = 0; j < textures.length; j++) {
 		if (i == j)
 		    continue;
-		// directions
-		for (var d = 1; d <= 8; d++) {
-		    // TODO přidat parametry ... a co offset?
-		    // this.mesh.geometry.widthSegments,
-		    // this.mesh.geometry.heightSegments
-		    this.mesh.material.materials.push(new GAME.BlendedMaterial(d, textures[i], textures[j], this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments));
+
+		// založ klíč pro tuto dvojici textur do blend mapy
+		var blendMapItem = {};
+		// zvyšuj index o 1 protože materiál 0 znamená mazání
+		var firstIndex = i + 1;
+		var secondIndex = j + 1;
+		this.blendMap["m" + firstIndex + "m" + secondIndex] = blendMapItem;
+
+		// vygeneruj všechny přechody ve všech směrech
+		for (var d = 0; d < 8; d++) {
+		    var mat = new GAME.BlendedMaterial(d, textures[i], textures[j], this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments);
+		    var dKey = this.mesh.material.materials.push(mat) - 1;
+		    // ulož číslo materiálu pod klíč tohoto přechodu
+		    blendMapItem[d] = dKey;
+		    // ulož reverzní info pro tento přechodový materiál
+		    this.blendMaterialInfoMap["m" + dKey] = {
+			fromMaterial : firstIndex,
+			toMaterial : secondIndex,
+			direction : d
+		    }
 		}
 	    }
 	}
@@ -90,11 +113,13 @@ GAME.Terrain.prototype = {
 	var face = Math.floor(faceIndex / 2);
 	var faceX = face % geometry.widthSegments;
 	var faceZ = Math.floor(face / geometry.widthSegments);
-	// pokud je štětec =1 a začínám na face =0, pak začátek je na face =0
-	var startX = faceX - (brushSize - 1);
-	var endX = faceX + (brushSize - 1);
-	var startZ = faceZ - (brushSize - 1);
-	var endZ = faceZ + (brushSize - 1);
+	// pokud je štětec =1 a začínám na face =0, pak začátek je na face =0 k
+	// čemuž je ale potřeba přičíst na všech stranách jedno pole na
+	// předchody s již existujícím typem terénu
+	var startX = faceX - (brushSize - 1) - 1;
+	var endX = faceX + (brushSize - 1) + 1;
+	var startZ = faceZ - (brushSize - 1) - 1;
+	var endZ = faceZ + (brushSize - 1) + 1;
 
 	console.log("Paint click on x: " + faceX + " Z: " + faceZ);
 
@@ -105,10 +130,86 @@ GAME.Terrain.prototype = {
 		if (x < 0 || x >= geometry.widthSegments)
 		    continue;
 
+		// index trojúhelníku (terrain face = 2 trojúhelníky)
 		var paintedFace = z * geometry.widthSegments * 2 + x * 2;
+		var paintedMaterial;
 
-		geometry.faces[paintedFace].materialIndex = material;
-		geometry.faces[paintedFace + 1].materialIndex = material;
+		// zkontroluj, zda okraje mého štětce nezasahují do jiného typu
+		// terénu, pokud ano, vytvoř místo mého materiálu přechody s
+		// původním materiálem
+		if (z == startZ || z == endZ || x == startX || x == endX) {
+		    // postačí ověřit vůči jednomu trojúhelníku, nekontroluj
+		    // default materiál -- do něj se přechod nedělá
+		    var secondMaterial = geometry.faces[paintedFace].materialIndex;
+		    if (secondMaterial != material && secondMaterial != 0 && secondMaterial != undefined && material != 0 && this.blendMaterialInfoMap["m" + material] == undefined) {
+			var blends = this.blendMap["m" + material + "m" + secondMaterial];
+
+			// trefili jsme přechod -- přechodový materiál nemá
+			// přechody, takže musíme zjistit z reverzní tabulky,
+			// který z jeho původních materiálů se má toho použít
+			var blendInfo = undefined;
+			if (blends == undefined) {
+			    blendInfo = this.blendMaterialInfoMap["m" + secondMaterial];
+			}
+
+			var direction = undefined;
+			if (x == startX && z != startZ && z != endZ)
+			    direction = 0; // směr 0 (doleva)
+			if (x == startX && z == startZ)
+			    direction = 1; // směr 1 (doleva nahoru)
+			if (x != startX && x != endX && z == startZ)
+			    direction = 2; // směr 2 (nahoru)
+			if (x == endX && z == startZ)
+			    direction = 3; // směr 3 (doprava nahoru)
+			if (x == endX && z != startZ && z != endZ)
+			    direction = 4; // směr 4 (doprava)
+			if (x == endX && z == endZ)
+			    direction = 5; // směr 5 (doprava dolů)
+			if (x != startX && x != endX && z == endZ)
+			    direction = 6; // směr 6 (dolů)
+			if (x == startX && z == endZ)
+			    direction = 7; // směr 7 (doleva dolů)
+
+			var solveBlendMaterial = function(direction) {
+			    if (blendInfo == undefined) {
+				// cílový materiál není přechod, můžu na něj
+				// aplikovat přechod ze svého materiálu
+				return blends[direction];
+			    } else {
+				// pokud existující přechod míří ze stejného
+				// materiálu jako jsem já, proti směru, který
+				// teď zkoumám, můžu použít přímo sebe jako
+				// materiál
+				if (blendInfo.fromMaterial == material && blendInfo.direction == (direction + 4) % 8) {
+				    return material;
+				} else {
+				    return undefined; // nevím, nech to být
+				}
+			    }
+			},
+
+			// vybral se nějaký materiál? Pokud ne, přeskoč tohle
+			// pole
+			paintedMaterial = solveBlendMaterial(direction);
+			if (paintedMaterial == undefined)
+			    continue;
+
+		    } else {
+			// nevybarvuj toto pole -- je buď stejného materiálu,
+			// jako teď barvím a přechod by tím pádem neměl smysl
+			// nebo na něm není zatím žádný materiál a není tím
+			// pádem do čeho dělat přechod. Další možností ještě je,
+			// že "mažu" výchozím materiálem -- ten nedělá přechody
+			// nebo jsem v debug módu a používám přímo přechodový
+			// materiál
+			continue;
+		    }
+		} else {
+		    // jinak zapisuj můj materiál (čistý, bez přechodu)
+		    paintedMaterial = material;
+		}
+		geometry.faces[paintedFace].materialIndex = paintedMaterial;
+		geometry.faces[paintedFace + 1].materialIndex = paintedMaterial;
 	    }
 	}
 
