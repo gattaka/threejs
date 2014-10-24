@@ -2,9 +2,12 @@ var EDITOR = EDITOR || {};
 
 EDITOR = function() {
 
-    Menu = function() {
+    Menu = function(editor) {
 	this.material = 1;
 	this.brushSize = 1;
+	this.save = function() {
+	    window.open("data:application/octet-stream;charset=utf-8;base64," + window.btoa(editor.terrain.save()), "_self");
+	};
     };
 
     this.container = document.body;
@@ -15,7 +18,7 @@ EDITOR = function() {
     this.stats = undefined;
     this.keyboard = new THREEx.KeyboardState();
     this.terrain = undefined;
-    this.menu = new Menu();
+    this.menu = new Menu(this);
     this.gui = undefined;
     this.eventDetails = {
 	mouseDown : false,
@@ -27,6 +30,7 @@ EDITOR = function() {
 	var gui = new dat.GUI();
 	gui.add(this.menu, 'material', [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]);
 	gui.add(this.menu, 'brushSize', [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]);
+	gui.add(this.menu, 'save');
 	this.gui = gui;
     }
 

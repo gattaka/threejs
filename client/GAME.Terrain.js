@@ -107,6 +107,15 @@ GAME.Terrain.prototype = {
 
     },
 
+    save : function() {
+	var geometry = this.mesh.geometry;
+	var output = geometry.heightSegments + " " + geometry.widthSegments + " ";
+	for (var i = 0; i < geometry.faces.length; i += 2) {
+	    output = output + geometry.faces[i].materialIndex + " ";
+	}
+	return output;	
+    },
+
     paintByFaceIndex : function(faceIndex, materialIndex, brushSize) {
 	var material = this.mesh.material.materials[materialIndex] == undefined ? 0 : materialIndex;
 	var geometry = this.mesh.geometry;
