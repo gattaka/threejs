@@ -29,13 +29,13 @@ void main(void)
     vec4 pO = texture2D(tOuter, pnt);
  
  	// jak ostrý má být pøechod (default = 1.0)
- 	float blendingSpeed = 4.0;
+ 	float blendingSpeed = 6.0;
 
  	// normálnì je pøechod dlouhý 1.0, s blendingSpeed = 4.0
  	// bude dlouhý 0.25, polovinu z toho je potøeba posunout, 
  	// aby byl pøechod v pùlce plochy, jinak oøezáním zaène
  	// v pùlce teprve pøechod rùst -- uvádìno pro smìr ze støedu
- 	float blendingCenter = 0.25; 
+ 	float blendingCenter = 0.5; 
  	float blendingOffset = blendingCenter - (1.0 / blendingSpeed) / 2.0;
  	float blendingReversedOffset = (1.0 - blendingCenter) - (1.0 / blendingSpeed) / 2.0;
  

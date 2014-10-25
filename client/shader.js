@@ -53,7 +53,7 @@ SHADER = function() {
 	this.scene.add(this.camera);
 
 	var grass = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02 seamless.jpg");
-	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Pavement_Broken_UV_H_CM_1.jpg");
+	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00 seamless.jpg");
 
 	grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
 	dirt.wrapS = dirt.wrapT = THREE.RepeatWrapping;

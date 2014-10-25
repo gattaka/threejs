@@ -144,7 +144,7 @@ EDITOR = function() {
 	// side : THREE.DoubleSide,
 	// });
 
-	var texnames = [ "textures/terrain/Pavement_Broken_UV_H_CM_1.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
+	var texnames = [ "textures/terrain/Dirt 00 seamless.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
 	terrain.registerMaterialsFromPath(texnames);
 
 	// var geo = new THREE.PlaneGeometry(20, 20, 20, 20);
