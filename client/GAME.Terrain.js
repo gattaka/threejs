@@ -54,12 +54,13 @@ GAME.Terrain.CommandHistory = function() {
     };
 
     this.stepBack = function() {
-	// pokud nemám v sobě žádnou historii nebo jsem zatím jediný příkaz, nemám co vracet
-	if (this.current == undefined || this.current.prev == undefined)
+	// pokud nemám v sobě žádnou historii, nemám co vracet
+	if (this.current == undefined)
 	    return undefined;
 	var changes = this.current.changes;
 	// přesuň kurzor aktuálního příkazu
-	this.current = this.current.prev;
+	if (this.current.prev != undefined)
+	    this.current = this.current.prev;
 	// vrať změny
 	return changes;
     };
@@ -162,21 +163,18 @@ GAME.Terrain.prototype = {
 	return output;
     },
 
-    sendEvent : function(event) {
-	if (event.event == GAME.Events.CTRL_Z) {
-	    event.consumed = true;
-	    var changes = this.history.stepBack();
+    undo : function() {
+	var changes = this.history.stepBack();
 
-	    // prázndá historie
-	    if (changes == undefined)
-		return;
+	// prázndá historie
+	if (changes == undefined)
+	    return;
 
-	    for (var i = 0; i < changes.length; i++) {
-		var change = changes[i];
-		this.mesh.geometry.faces[change.face].materialIndex = change.oldMaterial;
-	    }
-	    this.refreshGeometry();
+	for (var i = 0; i < changes.length; i++) {
+	    var change = changes[i];
+	    this.mesh.geometry.faces[change.face].materialIndex = change.oldMaterial;
 	}
+	this.refreshGeometry();
     },
 
     paintByFaceIndex : function(faceIndex, materialIndex, brushSize) {
@@ -219,7 +217,8 @@ GAME.Terrain.prototype = {
 		    var secondMaterial = geometry.faces[paintedFace].materialIndex;
 		    if (secondMaterial != material && secondMaterial != 0 && secondMaterial != undefined
 			    && material != 0 && this.blendMaterialInfoMap["m" + material] == undefined) {
-			var blends = this.blendMap["m" + material + "m" + secondMaterial];
+			var blendMap = this.blendMap;
+			var blends = blendMap["m" + material + "m" + secondMaterial];
 
 			// trefili jsme přechod -- přechodový materiál nemá
 			// přechody, takže musíme zjistit z reverzní tabulky,
@@ -252,13 +251,43 @@ GAME.Terrain.prototype = {
 				// cílový materiál není přechod, můžu na něj aplikovat přechod ze svého materiálu
 				return blends[direction];
 			    } else {
-				// pokud existující přechod míří ze stejného materiálu jako jsem já, proti směru, který
-				// teď zkoumám, můžu použít přímo sebe jako materiál
-				if (blendInfo.fromMaterial == material && blendInfo.direction == (direction + 4) % 8) {
-				    return material;
-				} else {
-				    return undefined; // nevím, nech to být
+				// nediagonální konflikty
+				if (direction % 2 == 0) {
+				    if (blendInfo.fromMaterial == material
+					    && blendInfo.direction == (direction + 4) % 8) {
+					// pokud existující přechod míří ze stejného materiálu jako jsem já, proti
+					// směru,
+					// který teď zkoumám (kromě diagonál), můžu použít přímo sebe jako materiál
+					return material;
+				    } else if (blendInfo.fromMaterial == material
+					    && ((blendInfo.direction == (direction + 7) % 8) || (blendInfo.direction == (direction + 1) % 8))) {
+					// pokud existující přechod zahýbá "ke mně" do stejného materiál, prodlužuju tak
+					// vlasně akorát jeho přechod z rohového na celou stranu -- zdrojový i cílový
+					// materiál tedy zůstává jako u tohoto zkoumaného přechodu
+					return blendMap["m" + material + "m" + blendInfo.toMaterial][direction];
+				    } else if (blendInfo.toMaterial == material
+					    && blendInfo.direction == (direction + 6) % 8) {
+					// pokud existují přechod je vlastně pouze otočen o -90° zasahuji do hranice
+					// přechodu -- zleva a zprava teď nejspíš vytvořím rohové přechody, takže na ně
+					// můžu navázat jeho rohovým přechodem
+					return blendMap["m" + blendInfo.fromMaterial + "m" + blendInfo.toMaterial][(blendInfo.direction + 7) % 8];
+				    } else if (blendInfo.toMaterial == material
+					    && blendInfo.direction == (direction + 2) % 8) {
+					// to samé, ale s tentokrát s otočením o +90°
+					return blendMap["m" + blendInfo.fromMaterial + "m" + blendInfo.toMaterial][(blendInfo.direction + 1) % 8];
+				    } else if (blendInfo.fromMaterial == material
+					    && blendInfo.direction == (direction + 6) % 8) {
+					// to samé, ale v opačné kombinaci materiálů -- použiju v tom případě roh z
+					// opačné kombinace materiálů
+					return blendMap["m" + blendInfo.toMaterial + "m" + blendInfo.fromMaterial][(blendInfo.direction + 5) % 8];
+				    } else if (blendInfo.fromMaterial == material
+					    && blendInfo.direction == (direction + 2) % 8) {
+					// to samé, ale v opačné kombinaci materiálů a s otočením o +90°
+					return blendMap["m" + blendInfo.toMaterial + "m" + blendInfo.fromMaterial][(blendInfo.direction + 3) % 8];
+				    }
+
 				}
+				return undefined; // nevím, nech to být
 			    }
 			},
 
@@ -279,21 +308,26 @@ GAME.Terrain.prototype = {
 		    paintedMaterial = material;
 		}
 
-		changes.push(new GAME.Terrain.Change(paintedFace, geometry.faces[paintedFace].materialIndex,
-			paintedMaterial));
-		changes.push(new GAME.Terrain.Change(paintedFace + 1, geometry.faces[paintedFace + 1].materialIndex,
-			paintedMaterial));
+		var oldMat = geometry.faces[paintedFace].materialIndex;
 
-		geometry.faces[paintedFace].materialIndex = paintedMaterial;
-		geometry.faces[paintedFace + 1].materialIndex = paintedMaterial;
+		// pokud je nějaká změna
+		if (oldMat != paintedMaterial) {
+		    changes.push(new GAME.Terrain.Change(paintedFace, oldMat, paintedMaterial));
+		    changes.push(new GAME.Terrain.Change(paintedFace + 1, oldMat, paintedMaterial));
+
+		    geometry.faces[paintedFace].materialIndex = paintedMaterial;
+		    geometry.faces[paintedFace + 1].materialIndex = paintedMaterial;
+		}
 	    }
 	}
 
 	this.refreshGeometry();
 
-	// editor commands history update
-	this.history.push(new GAME.Terrain.Command(changes));
-	console.log("Saving changes");
+	// editor commands history update -- jenom ale pokud jsou nějaké změny
+	if (changes.length > 0) {
+	    this.history.push(new GAME.Terrain.Command(changes));
+	    console.log("Saving changes");
+	}
 
     },
 

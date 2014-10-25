@@ -89,6 +89,21 @@ EDITOR = function() {
 	this.spotlight = spotlight;
     }
 
+    this.handleEvent = function(event) {
+	// pokud je stiskuto
+	if (editor.keyboard.pressed(event.eventCode)) {
+	    // a consumed flag je false, zavolej odběratele
+	    if (event.consumed == false)
+		editor.terrain.undo(event);	// TODO přesunout do listenerů
+	    // zkonzumováno
+	    event.consumed = true;
+	} else if (event.consumed == true) {
+	    // pokud tento event je ve stavu neaktivní, vyprázdni consumed 
+	    // může se tak znovu zpracovat až bude aktivní
+	    event.consumed = false;
+	}
+    }
+
     this.animateScene = function(editor) {
 	var animate = function() {
 	    requestAnimationFrame(arguments.callee);
@@ -100,15 +115,7 @@ EDITOR = function() {
 	    editor.controls.enabled = editor.keyboard.pressed("shift");
 	    editor.eventDetails.enabled = !editor.controls.enabled;
 
-	    // pokud je stiskuto ctrl+Z
-	    if (editor.keyboard.pressed("ctrl+Z")) {
-		// a ctrlZconsumed flag je false, povol ctrlZ akci
-		if (editor.eventDetails.ctrlZ.consumed == false)
-		    editor.terrain.sendEvent(editor.eventDetails.ctrlZ);
-	    } else if (editor.eventDetails.ctrlZ.consumed == true) {
-		// pokud není ctrlZ, vynuluj ctrlZconsumed
-		editor.eventDetails.ctrlZ.consumed = false;
-	    }
+	    editor.handleEvent(GAME.Events.CTRL_Z);
 	}
 	animate();
     };
@@ -137,7 +144,7 @@ EDITOR = function() {
 	// side : THREE.DoubleSide,
 	// });
 
-	var texnames = [ "textures/terrain/Dirt 00 seamless.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
+	var texnames = [ "textures/terrain/Pavement_Broken_UV_H_CM_1.jpg", "textures/terrain/Grass 02 seamless.jpg" ];
 	terrain.registerMaterialsFromPath(texnames);
 
 	// var geo = new THREE.PlaneGeometry(20, 20, 20, 20);
