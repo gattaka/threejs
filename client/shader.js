@@ -7,12 +7,14 @@ SHADER = function() {
     this.scene = new THREE.Scene();
     this.camera = undefined;
     this.stats = undefined;
+    this.controls = undefined;
 
     this.animateScene = function(editor) {
 	var animate = function() {
 	    requestAnimationFrame(arguments.callee);
 	    editor.renderer.render(editor.scene, editor.camera);
 	    editor.stats.update();
+	    editor.controls.update();
 	    // editor.uniforms.delta.value += 0.1;
 	}
 	animate();
@@ -51,7 +53,7 @@ SHADER = function() {
 	this.scene.add(this.camera);
 
 	var grass = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02 seamless.jpg");
-	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00 seamless.jpg");
+	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Pavement_Broken_UV_H_CM_1.jpg");
 
 	grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
 	dirt.wrapS = dirt.wrapT = THREE.RepeatWrapping;
@@ -71,6 +73,11 @@ SHADER = function() {
 	                                                 new GAME.BlendedMaterial(5,grass,dirt,ti,ti),
 	                                                 new GAME.BlendedMaterial(6,grass,dirt,ti,ti),
 	                                                 new GAME.BlendedMaterial(7,grass,dirt,ti,ti),
+	                                                 //---
+	                                                 new GAME.BlendedMaterial(1,dirt,grass,ti,ti),
+	                                                 new GAME.BlendedMaterial(3,dirt,grass,ti,ti),
+	                                                 new GAME.BlendedMaterial(5,dirt,grass,ti,ti),
+	                                                 new GAME.BlendedMaterial(7,dirt,grass,ti,ti),
 	                                                 ]);
 
 	var sphereGeo = new THREE.PlaneGeometry(50, 50, ti, ti);
@@ -101,11 +108,40 @@ SHADER = function() {
 	
 	sphereGeo.faces[16].materialIndex = 6;
 	sphereGeo.faces[17].materialIndex = 6;
+	
+//	sphereGeo.faces[0].materialIndex = 9;
+//	sphereGeo.faces[1].materialIndex = 9;
+//	
+//	sphereGeo.faces[2].materialIndex = 7;
+//	sphereGeo.faces[3].materialIndex = 7;
+//	
+//	sphereGeo.faces[4].materialIndex = 10;
+//	sphereGeo.faces[5].materialIndex = 10;
+//	
+//	sphereGeo.faces[6].materialIndex = 5;
+//	sphereGeo.faces[7].materialIndex = 5;
+//	
+//	sphereGeo.faces[8].materialIndex = 0;
+//	sphereGeo.faces[9].materialIndex = 0;
+//	
+//	sphereGeo.faces[10].materialIndex = 1;
+//	sphereGeo.faces[11].materialIndex = 1;
+//	
+//	sphereGeo.faces[12].materialIndex = 12;
+//	sphereGeo.faces[13].materialIndex = 12;
+//	
+//	sphereGeo.faces[14].materialIndex = 3;
+//	sphereGeo.faces[15].materialIndex = 3;
+//	
+//	sphereGeo.faces[16].materialIndex = 11;
+//	sphereGeo.faces[17].materialIndex = 11;
 
 	var sphereMesh = new THREE.Mesh(sphereGeo, facesMaterial);
 	sphereMesh.position.set(0, 0, 0);
-	sphereMesh.rotation.set(-Math.PI / 2, 0, Math.PI/2);
+	sphereMesh.rotation.set(-Math.PI / 2, 0, 0);
 	this.scene.add(sphereMesh);
+	
+	this.controls = new THREE.OrbitControls(this.camera, this.container);
 
 	this.animateScene(this);
     }

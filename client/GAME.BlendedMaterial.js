@@ -1,5 +1,5 @@
 var GAME = GAME || {} ;
-GAME.BlendedMaterial = function(direction, tex1, tex2, expX, expY) {
+GAME.BlendedMaterial = function(direction, texInner, texOuter, expX, expY) {
 
     function get_string_from_URL(url) {
 	var xmlhttp = new XMLHttpRequest();
@@ -10,13 +10,13 @@ GAME.BlendedMaterial = function(direction, tex1, tex2, expX, expY) {
 
     return new THREE.ShaderMaterial({
 	uniforms : { // custom uniforms (your textures)
-	    tLeft : {
+	    tInner : {
 		type : "t",
-		value : tex1
+		value : texInner
 	    },
-	    tRight : {
+	    tOuter: {
 		type : "t",
-		value : tex2
+		value : texOuter
 	    },
 	    direction : {
 		type : "i",
