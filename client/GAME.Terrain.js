@@ -1,4 +1,5 @@
 var GAME = GAME || {};
+
 GAME.Terrain = function(terrainWidth, terrainDepth, materialsList) {
     var heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
     THREEx.Terrain.simplexHeightMap(heightMap);
@@ -23,11 +24,55 @@ GAME.Terrain = function(terrainWidth, terrainDepth, materialsList) {
     this.mesh = terrain;
 }
 
+GAME.Terrain.Change = function(face, oldMaterial, newMaterial) {
+    this.face = face;
+    this.oldMaterial = oldMaterial;
+    this.newMaterial = newMaterial;
+};
+
+GAME.Terrain.Command = function(changes) {
+    this.prev = undefined;
+    this.next = undefined;
+    this.changes = changes;
+};
+
+GAME.Terrain.CommandHistory = function() {
+    this.first = undefined;
+    this.current = undefined;
+    this.last = undefined;
+
+    this.push = function(command) {
+	if (this.current != undefined) {
+	    command.prev = this.current;
+	    this.current.next = command;
+	}
+	if (this.first == undefined) {
+	    this.first = command;
+	}
+	this.current = command;
+	this.last = command;
+    };
+
+    this.stepBack = function() {
+	// pokud nemám v sobě žádnou historii nebo jsem zatím jediný příkaz, nemám co vracet
+	if (this.current == undefined || this.current.prev == undefined)
+	    return undefined;
+	var changes = this.current.changes;
+	// přesuň kurzor aktuálního příkazu
+	this.current = this.current.prev;
+	// vrať změny
+	return changes;
+    };
+
+};
+
 GAME.Terrain.prototype = {
 
     constructor : GAME.Terrain,
     mesh : undefined,
     heightMap : undefined,
+
+    history : new GAME.Terrain.CommandHistory(),
 
     // mapa, ve které je možné hledat dle dvou materiálů jejich přechodové
     // materiály a jejich směrové varianty
@@ -89,7 +134,8 @@ GAME.Terrain.prototype = {
 
 		// vygeneruj všechny přechody ve všech směrech
 		for (var d = 0; d < 8; d++) {
-		    var mat = new GAME.BlendedMaterial(d, textures[i], textures[j], this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments);
+		    var mat = new GAME.BlendedMaterial(d, textures[i], textures[j], this.mesh.geometry.widthSegments,
+			    this.mesh.geometry.heightSegments);
 		    var dKey = this.mesh.material.materials.push(mat) - 1;
 		    // ulož číslo materiálu pod klíč tohoto přechodu
 		    blendMapItem[d] = dKey;
@@ -113,10 +159,31 @@ GAME.Terrain.prototype = {
 	for (var i = 0; i < geometry.faces.length; i += 2) {
 	    output = output + geometry.faces[i].materialIndex + " ";
 	}
-	return output;	
+	return output;
+    },
+
+    sendEvent : function(event) {
+	if (event.event == GAME.Events.CTRL_Z) {
+	    event.consumed = true;
+	    var changes = this.history.stepBack();
+
+	    // prázndá historie
+	    if (changes == undefined)
+		return;
+
+	    for (var i = 0; i < changes.length; i++) {
+		var change = changes[i];
+		this.mesh.geometry.faces[change.face].materialIndex = change.oldMaterial;
+	    }
+	    this.refreshGeometry();
+	}
     },
 
     paintByFaceIndex : function(faceIndex, materialIndex, brushSize) {
+
+	// editor commands history changes
+	var changes = [];
+
 	var material = this.mesh.material.materials[materialIndex] == undefined ? 0 : materialIndex;
 	var geometry = this.mesh.geometry;
 	var face = Math.floor(faceIndex / 2);
@@ -150,7 +217,8 @@ GAME.Terrain.prototype = {
 		    // postačí ověřit vůči jednomu trojúhelníku, nekontroluj
 		    // default materiál -- do něj se přechod nedělá
 		    var secondMaterial = geometry.faces[paintedFace].materialIndex;
-		    if (secondMaterial != material && secondMaterial != 0 && secondMaterial != undefined && material != 0 && this.blendMaterialInfoMap["m" + material] == undefined) {
+		    if (secondMaterial != material && secondMaterial != 0 && secondMaterial != undefined
+			    && material != 0 && this.blendMaterialInfoMap["m" + material] == undefined) {
 			var blends = this.blendMap["m" + material + "m" + secondMaterial];
 
 			// trefili jsme přechod -- přechodový materiál nemá
@@ -181,14 +249,11 @@ GAME.Terrain.prototype = {
 
 			var solveBlendMaterial = function(direction) {
 			    if (blendInfo == undefined) {
-				// cílový materiál není přechod, můžu na něj
-				// aplikovat přechod ze svého materiálu
+				// cílový materiál není přechod, můžu na něj aplikovat přechod ze svého materiálu
 				return blends[direction];
 			    } else {
-				// pokud existující přechod míří ze stejného
-				// materiálu jako jsem já, proti směru, který
-				// teď zkoumám, můžu použít přímo sebe jako
-				// materiál
+				// pokud existující přechod míří ze stejného materiálu jako jsem já, proti směru, který
+				// teď zkoumám, můžu použít přímo sebe jako materiál
 				if (blendInfo.fromMaterial == material && blendInfo.direction == (direction + 4) % 8) {
 				    return material;
 				} else {
@@ -197,32 +262,39 @@ GAME.Terrain.prototype = {
 			    }
 			},
 
-			// vybral se nějaký materiál? Pokud ne, přeskoč tohle
-			// pole
+			// vybral se nějaký materiál? Pokud ne, přeskoč tohle pole
 			paintedMaterial = solveBlendMaterial(direction);
 			if (paintedMaterial == undefined)
 			    continue;
 
 		    } else {
-			// nevybarvuj toto pole -- je buď stejného materiálu,
-			// jako teď barvím a přechod by tím pádem neměl smysl
-			// nebo na něm není zatím žádný materiál a není tím
-			// pádem do čeho dělat přechod. Další možností ještě je,
-			// že "mažu" výchozím materiálem -- ten nedělá přechody
-			// nebo jsem v debug módu a používám přímo přechodový
-			// materiál
+			// nevybarvuj toto pole -- je buď stejného materiálu, jako teď barvím a přechod by tím pádem
+			// neměl smysl nebo na něm není zatím žádný materiál a není tím pádem do čeho dělat přechod.
+			// Další možností ještě je, že "mažu" výchozím materiálem -- ten nedělá přechody nebo jsem v
+			// debug módu a používám přímo přechodový materiál
 			continue;
 		    }
 		} else {
 		    // jinak zapisuj můj materiál (čistý, bez přechodu)
 		    paintedMaterial = material;
 		}
+
+		changes.push(new GAME.Terrain.Change(paintedFace, geometry.faces[paintedFace].materialIndex,
+			paintedMaterial));
+		changes.push(new GAME.Terrain.Change(paintedFace + 1, geometry.faces[paintedFace + 1].materialIndex,
+			paintedMaterial));
+
 		geometry.faces[paintedFace].materialIndex = paintedMaterial;
 		geometry.faces[paintedFace + 1].materialIndex = paintedMaterial;
 	    }
 	}
 
 	this.refreshGeometry();
+
+	// editor commands history update
+	this.history.push(new GAME.Terrain.Command(changes));
+	console.log("Saving changes");
+
     },
 
 }

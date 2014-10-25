@@ -6,7 +6,8 @@ EDITOR = function() {
 	this.material = 1;
 	this.brushSize = 1;
 	this.save = function() {
-	    window.open("data:application/octet-stream;charset=utf-8;base64," + window.btoa(editor.terrain.save()), "_self");
+	    window.open("data:application/octet-stream;charset=utf-8;base64," + window.btoa(editor.terrain.save()),
+		    "_self");
 	};
     };
 
@@ -23,7 +24,8 @@ EDITOR = function() {
     this.eventDetails = {
 	mouseDown : false,
 	face : undefined,
-	enabled : true
+	enabled : true,
+	ctrlZ : new GAME.Events(GAME.Events.CTRL_Z)
     };
 
     this.createMenu = function(scene) {
@@ -34,7 +36,7 @@ EDITOR = function() {
 	this.gui = gui;
     }
 
-    this.mouseControls = function(camera, renderer, mesh) {
+    this.editorControls = function(camera, renderer, mesh) {
 	var editor = this;
 	var domEvents = new THREEx.DomEvents(camera, renderer.domElement)
 	var eventDetails = editor.eventDetails;
@@ -97,6 +99,16 @@ EDITOR = function() {
 	    // orbit controls budou fungovat pouze za stisku shiftu
 	    editor.controls.enabled = editor.keyboard.pressed("shift");
 	    editor.eventDetails.enabled = !editor.controls.enabled;
+
+	    // pokud je stiskuto ctrl+Z
+	    if (editor.keyboard.pressed("ctrl+Z")) {
+		// a ctrlZconsumed flag je false, povol ctrlZ akci
+		if (editor.eventDetails.ctrlZ.consumed == false)
+		    editor.terrain.sendEvent(editor.eventDetails.ctrlZ);
+	    } else if (editor.eventDetails.ctrlZ.consumed == true) {
+		// pokud není ctrlZ, vynuluj ctrlZconsumed
+		editor.eventDetails.ctrlZ.consumed = false;
+	    }
 	}
 	animate();
     };
@@ -188,7 +200,7 @@ EDITOR = function() {
 
 	this.controls = new THREE.OrbitControls(this.camera, this.container);
 	this.controls.enabled = false;
-	this.mouseControls(this.camera, this.renderer, this.terrain.mesh);
+	this.editorControls(this.camera, this.renderer, this.terrain.mesh);
 
 	this.animateScene(this);
     }

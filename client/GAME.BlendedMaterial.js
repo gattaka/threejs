@@ -1,4 +1,4 @@
-var GAME = {} || GAME;
+var GAME = GAME || {} ;
 GAME.BlendedMaterial = function(direction, tex1, tex2, expX, expY) {
 
     function get_string_from_URL(url) {
