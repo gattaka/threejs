@@ -1,8 +1,10 @@
 var GAME = GAME || {};
 
-GAME.Terrain = function(terrainWidth, terrainDepth, materialsList) {
-    var heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
-    THREEx.Terrain.simplexHeightMap(heightMap);
+GAME.Terrain = function(terrainWidth, terrainDepth, texnames, heightMap) {
+    if (heightMap == undefined) {
+	heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
+	THREEx.Terrain.simplexHeightMap(heightMap);
+    }
     var geometry = THREEx.Terrain.heightMapToPlaneGeometry(heightMap);
     var materials = [];
     materials.push(new THREE.MeshBasicMaterial({
@@ -10,19 +12,38 @@ GAME.Terrain = function(terrainWidth, terrainDepth, materialsList) {
 	wireframe : true
     }));
 
-    if (materialsList) {
-	materials.concat(materialsList);
-    }
-
     var terrain = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
 
     terrain.rotateX(-Math.PI / 2);
     var scale = 20;
     terrain.scale.x = terrainWidth * scale;
     terrain.scale.y = terrainDepth * scale;
-    terrain.scale.z = 50;
+    terrain.scale.z = 100;
     this.mesh = terrain;
+
+    this.texnames = texnames;
+    this.registerMaterialsFromPath();
 }
+
+GAME.Terrain.load = function(data) {
+    var arr = data.split(" ");
+    var terrainWidth = parseInt(arr[0]);
+    var terrainDepth = parseInt(arr[1]);
+    var baseMaterialsCount = parseInt(arr[2]);
+    var texnames = arr.slice(3, 3 + baseMaterialsCount);
+    var terrain = new GAME.Terrain(terrainWidth, terrainDepth, texnames);
+
+    var matArrIndex = 1 + 1 + 1 + baseMaterialsCount
+    var geometry = terrain.mesh.geometry;
+    for (var i = 0; i < geometry.faces.length; i += 2) {
+	var matIndex = parseInt(arr[matArrIndex]);
+	geometry.faces[i].materialIndex = matIndex;
+	geometry.faces[i + 1].materialIndex = matIndex;
+	matArrIndex++;
+    }
+
+    return terrain;
+};
 
 GAME.Terrain.Change = function(face, oldMaterial, newMaterial) {
     this.face = face;
@@ -72,6 +93,7 @@ GAME.Terrain.prototype = {
     constructor : GAME.Terrain,
     mesh : undefined,
     heightMap : undefined,
+    texnames : undefined,
 
     history : new GAME.Terrain.CommandHistory(),
 
@@ -105,12 +127,12 @@ GAME.Terrain.prototype = {
 	// geo.verticesNeedUpdate = true;
     },
 
-    registerMaterialsFromPath : function(texturePath) {
+    registerMaterialsFromPath : function() {
 
 	var textures = [];
 
-	for (t in texturePath) {
-	    var texture = new THREE.ImageUtils.loadTexture(texturePath[t]);
+	for (t in this.texnames) {
+	    var texture = new THREE.ImageUtils.loadTexture(this.texnames[t]);
 	    textures.push(texture);
 	    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 	    texture.repeat.set(this.mesh.geometry.widthSegments, this.mesh.geometry.heightSegments);
@@ -118,6 +140,7 @@ GAME.Terrain.prototype = {
 		map : texture,
 	    // side : THREE.DoubleSide,
 	    }));
+
 	}
 
 	// projdi všechny zaregistrované textury a vytvoř jejich blend kombinace
@@ -156,7 +179,11 @@ GAME.Terrain.prototype = {
 
     save : function() {
 	var geometry = this.mesh.geometry;
-	var output = geometry.heightSegments + " " + geometry.widthSegments + " ";
+	var output = geometry.widthSegments + " " + geometry.heightSegments + " ";
+	output = output + this.texnames.length + " ";
+	for (t in this.texnames) {
+	    output = output + this.texnames[t] + " ";
+	}
 	for (var i = 0; i < geometry.faces.length; i += 2) {
 	    output = output + geometry.faces[i].materialIndex + " ";
 	}

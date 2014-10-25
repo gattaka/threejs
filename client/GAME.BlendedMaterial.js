@@ -1,13 +1,6 @@
 var GAME = GAME || {} ;
 GAME.BlendedMaterial = function(direction, texInner, texOuter, expX, expY) {
 
-    function get_string_from_URL(url) {
-	var xmlhttp = new XMLHttpRequest();
-	xmlhttp.open("GET", url, false);
-	xmlhttp.send();
-	return xmlhttp.responseText;
-    }
-
     return new THREE.ShaderMaterial({
 	uniforms : { // custom uniforms (your textures)
 	    tInner : {
@@ -31,8 +24,8 @@ GAME.BlendedMaterial = function(direction, texInner, texOuter, expX, expY) {
 		value : expY
 	    }
 	},
-	vertexShader : get_string_from_URL("GAME.BlendedMaterial.vertex.shader"),
-	fragmentShader : get_string_from_URL("GAME.BlendedMaterial.fragment.shader"),
+	vertexShader : GAME.Utils.loadString("GAME.BlendedMaterial.vertex.shader"),
+	fragmentShader : GAME.Utils.loadString("GAME.BlendedMaterial.fragment.shader"),
 	transparent : true
     });
 }

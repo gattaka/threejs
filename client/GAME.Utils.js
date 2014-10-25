@@ -1,5 +1,7 @@
 var GAME = GAME || {};
-GAME.loadCollada = function(path, modifier, childrenModifier) {
+GAME.Utils = {};
+
+GAME.Utils.loadCollada = function(path, modifier, childrenModifier) {
     var loader = new THREEx.UniversalLoader()
     loader.load(path, function(object3d) {
 	object3d.traverse(function(child) {
@@ -12,7 +14,7 @@ GAME.loadCollada = function(path, modifier, childrenModifier) {
 	    if (childrenModifier) {
 		childrenModifier(child);
 	    }
-	    
+
 	});
 
 	// this function will be notified when the model is loaded
@@ -21,7 +23,7 @@ GAME.loadCollada = function(path, modifier, childrenModifier) {
     });
 };
 
-GAME.createStats = function(container) {
+GAME.Utils.createStats = function(container) {
     var stats = new Stats();
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.top = '0px';
@@ -29,3 +31,10 @@ GAME.createStats = function(container) {
     container.appendChild(stats.domElement);
     return stats;
 };
+
+GAME.Utils.loadString = function(url) {
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", url, false);
+    xmlhttp.send();
+    return xmlhttp.responseText;
+}

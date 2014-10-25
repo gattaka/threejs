@@ -1,8 +1,8 @@
 var GAME = GAME || {};
 
-GAME.Events = function(eventCode) {
+GAME.Event = function(eventCode) {
     this.eventCode = eventCode; // typ události
     this.consumed = false; // byla již zpracována?
 }
 
-GAME.Events.CTRL_Z = new GAME.Events("ctrl+z");
+GAME.Event.CTRL_Z = new GAME.Event("ctrl+z");
