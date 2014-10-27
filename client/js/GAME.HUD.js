@@ -1,8 +1,10 @@
+var GAME = GAME || {};
+GAME.HUD = {};
 GAME.HUD = function(orthoScene) {
 
     var frame = this.createFrame();
     orthoScene.add(frame);
-    
+
 }
 
 GAME.HUD.prototype = {

@@ -1,6 +1,6 @@
-var SHADER = SHADER || {};
+var GAME = GAME || {};
 
-SHADER = function() {
+GAME.Shader = function() {
 
     this.container = document.body;
     this.renderer = undefined;
@@ -52,8 +52,8 @@ SHADER = function() {
 	this.camera.lookAt(this.scene.position);
 	this.scene.add(this.camera);
 
-	var grass = THREE.ImageUtils.loadTexture("textures/terrain/Grass 02 seamless.jpg");
-	var dirt = THREE.ImageUtils.loadTexture("textures/terrain/Dirt 00 seamless.jpg");
+	var grass = THREE.ImageUtils.loadTexture("../textures/terrain/Grass 02 seamless.jpg");
+	var dirt = THREE.ImageUtils.loadTexture("../textures/terrain/Dirt 00 seamless.jpg");
 
 	grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
 	dirt.wrapS = dirt.wrapT = THREE.RepeatWrapping;

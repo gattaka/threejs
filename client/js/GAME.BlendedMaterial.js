@@ -24,8 +24,8 @@ GAME.BlendedMaterial = function(direction, texInner, texOuter, expX, expY) {
 		value : expY
 	    }
 	},
-	vertexShader : GAME.Utils.loadString("GAME.BlendedMaterial.vertex.shader"),
-	fragmentShader : GAME.Utils.loadString("GAME.BlendedMaterial.fragment.shader"),
+	vertexShader : GAME.Utils.loadString("js/shaders/GAME.BlendedMaterial.vertex.shader"),
+	fragmentShader : GAME.Utils.loadString("js/shaders/GAME.BlendedMaterial.fragment.shader"),
 	transparent : true
     });
 }

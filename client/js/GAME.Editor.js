@@ -1,6 +1,5 @@
-var EDITOR = EDITOR || {};
-
-EDITOR = function() {
+var GAME = GAME || {};
+GAME.Editor = function() {
 
     Menu = function(editor) {
 	this.material = 1;
@@ -130,8 +129,8 @@ EDITOR = function() {
     };
 
     this.createTerrain = function(scene) {
-//	var terrain = new GAME.Terrain(100, 50, texnames);
-	var data = GAME.Utils.loadString('maps/map.dat');
+	// var terrain = new GAME.Terrain(100, 50, texnames);
+	var data = GAME.Utils.loadString('../maps/map.dat');
 	var terrain = GAME.Terrain.load(data);
 
 	this.terrain = terrain;

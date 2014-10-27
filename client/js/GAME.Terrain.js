@@ -5,6 +5,7 @@ GAME.Terrain = function(terrainWidth, terrainDepth, texnames, heightMap) {
 	heightMap = THREEx.Terrain.allocateHeightMap(terrainWidth + 1, terrainDepth + 1);
 	THREEx.Terrain.simplexHeightMap(heightMap);
     }
+    this.heightMap = heightMap;
     var geometry = THREEx.Terrain.heightMapToPlaneGeometry(heightMap);
     var materials = [];
     materials.push(new THREE.MeshBasicMaterial({
@@ -18,7 +19,7 @@ GAME.Terrain = function(terrainWidth, terrainDepth, texnames, heightMap) {
     var scale = 20;
     terrain.scale.x = terrainWidth * scale;
     terrain.scale.y = terrainDepth * scale;
-    terrain.scale.z = 100;
+    terrain.scale.z = 50;
     this.mesh = terrain;
 
     this.texnames = texnames;

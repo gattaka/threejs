@@ -15,33 +15,37 @@ body {
 </style>
 </head>
 <body class="canvas">
-	<script src="require.js"></script>
-	<script src="three.js"></script>
-	<script src="Detector.js"></script>
-	<script src="textures.js"></script>
-	<script src="Stats.js"></script>
-	<script src="OrbitControls.js"></script>
-	<script src="THREEx.KeyboardState.js"></script>
-	<script src="THREEx.FullScreen.js"></script>
-	<script src="THREEx.WindowResize.js"></script>
-	<script src="threex.domevents.js"></script>
-	<script src="ColladaLoader.js"></script>
-	<script src='MTLLoader.js'></script>
-	<script src='OBJLoader.js'></script>
-	<script src="OBJMTLLoader.js"></script>
-	<script src='threex.universalloader.js'></script>
-	<script src='threex.grass.js'></script>
-	<script src='SimplexNoise.js'></script>
-	<script src='threex.terrain.js'></script>
-	<!-- 	<script src="csg.js"></script> -->
-	<!-- 	<script src="ThreeCSG.js"></script> -->
 
-	<script src="game.js"></script>
-	<script src="utils.js"></script>
-	<script src="skybox.js"></script>
-	<script src="hud.js"></script>
-	<script src="level.js"></script>
-	<script>var game = new GAME(); game.run()</script>
+	<script src="js/require.js"></script>
+	<script src="js/three.js"></script>
+	<script src="js/Detector.js"></script>
+	<script src="js/textures.js"></script>
+	<script src="js/Stats.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script src="js/THREEx.KeyboardState.js"></script>
+	<script src="js/THREEx.FullScreen.js"></script>
+	<script src="js/THREEx.WindowResize.js"></script>
+	<script src="js/threex.domevents.js"></script>
+	<script src="js/ColladaLoader.js"></script>
+	<script src="js/MTLLoader.js"></script>
+	<script src="js/OBJLoader.js"></script>
+	<script src="js/OBJMTLLoader.js"></script>
+	<script src="js/threex.universalloader.js"></script>
+	<script src="js/threex.grass.js"></script>
+	<script src="js/SimplexNoise.js"></script>
+	<script src="js/threex.terrain.js"></script>
+	<!-- 	<script src="js/csg.js"></script> -->
+	<!-- 	<script src="js/ThreeCSG.js"></script> -->
+
+	<script src="js/GAME.Utils.js"></script>
+	<script src="js/GAME.Events.js"></script>
+	<script src="js/GAME.BlendedMaterial.js"></script>
+	<script src="js/GAME.Terrain.js"></script>
+	<script src="js/GAME.Skybox.js"></script>
+	<script src="js/GAME.HUD.js"></script>
+	<script src="js/GAME.Level.js"></script>
+	<script src="js/GAME.Game.js"></script>
+	<script>var game = new GAME.Game(); game.run()</script>
 
 </body>
 </html>
