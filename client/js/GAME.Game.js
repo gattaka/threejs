@@ -64,18 +64,20 @@ GAME.Game = function() {
 	    game.stats.update();
 	    game.hitCheck(game);
 	    game.player.animate(delay);
+
+	    TWEEN.update();
 	};
 	animate();
     };
 
     this.hitCheck = function(game) {
-	if (game.keyboard.pressed("w") == true) {
-	    game.player.state = GAME.Player.WALK;
-	} else {
-	    game.player.state = GAME.Player.STAND;
-	}
-	if (game.player.mesh)
-	    this.level.plantObject(game.player.mesh);
+	// if (game.keyboard.pressed("w") == true) {
+	// game.player.state = GAME.Player.WALK;
+	// } else {
+	// game.player.state = GAME.Player.STAND;
+	// }
+	// if (game.player.mesh)
+	// this.level.plantObject(game.player.mesh);
     }
 
     this.createPlayer = function(scene) {
@@ -83,12 +85,70 @@ GAME.Game = function() {
 	this.player = player;
     }
 
-    this.mouseControls = function(camera, renderer, mesh) {
-	var domEvents = new THREEx.DomEvents(camera, renderer.domElement)
-	var p = this.rock;
-	domEvents.addEventListener(mesh, "click", function(event) {
-	    p.position.x = event.intersect.point.x;
-	    p.position.z = event.intersect.point.z;
+    this.mouseControls = function(game) {
+	var domEvents = new THREEx.DomEvents(game.camera, game.renderer.domElement)
+	var p = game.player;
+	domEvents.addEventListener(game.level.terrain.mesh, "click", function(event) {
+	    if (p.mesh == undefined)
+		return;
+	    var position = {
+		x : p.mesh.position.x,
+		z : p.mesh.position.z
+	    };
+	    var target = {
+		x : event.intersect.point.x,
+		z : event.intersect.point.z
+	    };
+
+	    var speed = 0.3; // jednotek za sekundu
+	    var a = target.z - position.z;
+	    var b = target.x - position.x;
+	    var distance = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+
+	    // var direction;
+	    // if (a >= 0 && b >= 0) {
+	    // // I.
+	    // direction = Math.sin(b / distance);
+	    // } else if (a < 0 && b >= 0) {
+	    // // II.
+	    // direction = Math.PI - Math.sin(b / distance);
+	    // } else if (a < 0 && b < 0) {
+	    // // III.
+	    // direction = Math.sin(Math.abs(b) / distance) + Math.PI;
+	    // } else {
+	    // // IV.
+	    // direction = 2 * Math.PI - Math.sin(Math.abs(b));
+	    // }
+	    //
+	    // // Oproti jednotkové kružnici na které vypočítávám směr je ve scéně rotace braná, že na 90° má 0° a roste
+	    // // opačným směrem, takže musím odečítat 90° a obracet finální znaménko
+	    // p.mesh.rotation.y = -(direction - Math.PI / 2);
+
+	    p.mesh.lookAt(new THREE.Vector3(target.x, 0, target.z));
+	    
+	    var line;
+	    var tween = new TWEEN.Tween(position).to(target, distance / speed);
+	    tween.onStart(function() {
+		p.state = GAME.Player.WALK;
+		var material = new THREE.LineBasicMaterial({
+		    color : 0x0000ff
+		});
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push(new THREE.Vector3(position.x, 50, position.z));
+		geometry.vertices.push(new THREE.Vector3(target.x, 50, target.z));
+		line = new THREE.Line(geometry, material);
+		game.scene.add(line);
+	    });
+	    tween.onUpdate(function() {
+		p.mesh.position.x = position.x;
+		p.mesh.position.z = position.z;
+		game.level.plantObject(p.mesh);
+	    });
+	    tween.onComplete(function() {
+		p.state = GAME.Player.STAND;
+		game.scene.remove(line);
+	    });
+	    tween.start();
 	}, false);
     }
 
@@ -118,7 +178,7 @@ GAME.Game = function() {
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
 	// this.camera.position.set(50, 40, -80);
-	this.camera.position.set(100, 100, 100);
+	this.camera.position.set(200, 300, 400);
 	this.camera.lookAt(this.scene.position);
 
 	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
@@ -130,7 +190,7 @@ GAME.Game = function() {
 
 	this.scene.add(new THREE.AxisHelper(100));
 	this.createPlayer(this.scene);
-	// this.mouseControls(this.camera, this.renderer, this.level.terrain.mesh);
+	this.mouseControls(this);
 
 	this.initScreenEvents();
 	this.initControls();

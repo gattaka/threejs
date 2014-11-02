@@ -9,13 +9,10 @@ GAME.Player = function(scene) {
 	    child.receiveShadow = true;
 	    if (child instanceof THREE.SkinnedMesh) {
 		player.animation = new THREE.Animation(child, child.geometry.animation);
-		player.animation.timeScale = 1 / 50;
-		player.animation.play();
 	    }
 	});
 
 	object3d.scale.set(5, 5, 5);
-	object3d.rotation.x = Math.PI;
 	object3d.castShadow = true;
 	object3d.receiveShadow = true;
 	player.mesh = object3d;
@@ -31,7 +28,7 @@ GAME.Player.prototype = {
 
     constructor : GAME.Player,
     state : GAME.Player.STAND,
-    oldState : this.state,
+    oldState : undefined,
 
     animate : function(delta) {
 	var animation = this.animation;
@@ -48,19 +45,21 @@ GAME.Player.prototype = {
 	var newState = !(this.oldState == this.state);
 
 	if (this.state == GAME.Player.STAND) {
-	    if (currentKeyFrame >= 2 || newState) { 
+	    if (currentKeyFrame >= 2 || newState) {
 		animation.stop();
-		animation.play(0); 
+		animation.timeScale = 1 / 50;
+		animation.play(0);
 	    }
 	} else if (this.state == GAME.Player.WALK) {
 	    if (currentKeyFrame >= 5 || newState) {
 		animation.stop();
+		animation.timeScale = 1 / 20;
 		animation.play(3 / animation.data.fps);
 	    }
 	}
 
-	console.log("currentTime: " + currentTime);
-	console.log("currentKeyFrame: " + currentKeyFrame);
+	// console.log("currentTime: " + currentTime);
+	// console.log("currentKeyFrame: " + currentKeyFrame);
 
 	this.oldState = this.state;
     },

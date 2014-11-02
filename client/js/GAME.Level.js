@@ -50,7 +50,6 @@ GAME.Level.prototype = {
     },
 
     createTerrain : function(scene) {
-	// TODO nahrávat z XML
 	var data = GAME.Utils.loadString('../maps/map.dat');
 	var terrain = GAME.Terrain.load(data);
 
