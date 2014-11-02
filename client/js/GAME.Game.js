@@ -2,7 +2,6 @@ var GAME = GAME || {};
 GAME.Game = function() {
 
     this.container = document.body;
-
     this.renderer = undefined;
 
     this.scene = new THREE.Scene();
@@ -18,20 +17,10 @@ GAME.Game = function() {
     this.clock = new THREE.Clock();
     this.controls = undefined;
     this.stats = undefined;
-    this.loader = new THREEx.UniversalLoader();
 
-    this.updateFcts = [];
+    this.animator = new GAME.Animator();
 
-    this.rock = undefined;
-
-    this.log = function(msg) {
-	console.log("GAME:: " + msg);
-    };
-
-    // Angles to Rads
-    this.toRad = function(angle) {
-	return angle * 3.14 / 180;
-    };
+    this.player = undefined;
 
     this.initControls = function() {
 	this.controls = new THREE.OrbitControls(this.camera, this.container);
@@ -52,10 +41,6 @@ GAME.Game = function() {
 	THREEx.FullScreen.bindKey({
 	    charCode : 'm'.charCodeAt(0)
 	});
-
-	document.addEventListener("mousemove", function(event) {
-	    // veškeré on-mouse events
-	}, false);
     };
 
     // Animate the scene and call rendering.
@@ -63,95 +48,39 @@ GAME.Game = function() {
 
 	var game = this;
 
-	var renderer = this.renderer;
-	var scene = this.scene;
-	var camera = this.camera;
-	var sceneOrtho = this.sceneOrtho;
-	var cameraOrtho = this.cameraOrtho;
-	var controls = this.controls;
-	var stats = this.stats;
-	var clock = this.clock;
-	var keyboard = this.keyboard;
-	var rock = this.rock;
-
 	// closure !
 	var animate = function() {
-	    return function() {
-		requestAnimationFrame(arguments.callee);
-		renderer.clear();
-		renderer.render(scene, camera);
-		renderer.clearDepth();
-		renderer.render(sceneOrtho, cameraOrtho);
-		THREE.AnimationHandler.update(clock.getDelta());
-		controls.update();
-		stats.update();
-		game.hitCheck(game);
-	    };
+
+	    var delay = game.clock.getDelta();
+
+	    requestAnimationFrame(arguments.callee);
+	    game.renderer.clear();
+	    game.renderer.render(game.scene, game.camera);
+	    game.renderer.clearDepth();
+	    game.renderer.render(game.sceneOrtho, game.cameraOrtho);
+	    THREE.AnimationHandler.update(delay);
+
+	    game.controls.update();
+	    game.stats.update();
+	    game.hitCheck(game);
+	    game.player.animate(delay);
 	};
-	var animateClosure = animate();
-	animateClosure();
+	animate();
     };
 
     this.hitCheck = function(game) {
-
-	var keyboard = game.keyboard;
-	var rock = game.rock;
-	var scene = game.scene;
-
-	// cooldown -- TODO přepsat, aktuálně závislé na FPS
-	if (keyboard.lastTime == undefined) {
-	    keyboard.cooldown = 5;
-	    keyboard.lastTime = 0;
+	if (game.keyboard.pressed("w") == true) {
+	    game.player.state = GAME.Player.WALK;
 	} else {
-	    if (keyboard.lastTime < keyboard.cooldown) {
-		keyboard.lastTime++;
-		return;
-	    }
+	    game.player.state = GAME.Player.STAND;
 	}
-
-	if (keyboard.pressed("w") == true) {
-	    rock.material.wireframe = !rock.material.wireframe;
-	    keyboard.lastTime = 0
-	}
-
+	if (game.player.mesh)
+	    this.level.plantObject(game.player.mesh);
     }
 
     this.createPlayer = function(scene) {
-	var texturePath = '../models/texture8.jpg';
-	var texture = new THREE.ImageUtils.loadTexture(texturePath);
-	var material = new THREE.MeshLambertMaterial({
-	    map : texture,
-	});
-
-	var texturePath2 = '../models/monster.jpg';
-	var texture2 = new THREE.ImageUtils.loadTexture(texturePath2);
-	var material2 = new THREE.MeshLambertMaterial({
-	    map : texture2,
-	});
-
-	var materials = [ new THREE.MeshBasicMaterial({
-	    color : 0xFF0000
-	}), new THREE.MeshBasicMaterial({
-	    color : 0x00FF00
-	}), new THREE.MeshBasicMaterial({
-	    color : 0x0000FF
-	}), new THREE.MeshBasicMaterial({
-	    color : 0xAA0000
-	}), new THREE.MeshBasicMaterial({
-	    color : 0x00AA00
-	}), material2 ];
-
-	var geometry = new THREE.IcosahedronGeometry(20, 1);
-
-	var bricks = [ new THREE.Vector2(0, .666), new THREE.Vector2(.5, .666), new THREE.Vector2(.5, 1),
-		new THREE.Vector2(0, 1) ];
-	geometry.faceVertexUvs[0][0] = [ bricks[0], bricks[1], bricks[3] ];
-	geometry.faceVertexUvs[0][1] = [ bricks[1], bricks[2], bricks[3] ];
-
-	var p = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-	scene.add(p);
-	p.position.set(-20, 0, -20);
-	this.rock = p;
+	var player = new GAME.Player(scene);
+	this.player = player;
     }
 
     this.mouseControls = function(camera, renderer, mesh) {
@@ -189,7 +118,7 @@ GAME.Game = function() {
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
 	// this.camera.position.set(50, 40, -80);
-	this.camera.position.set(-100, 100, -100);
+	this.camera.position.set(100, 100, 100);
 	this.camera.lookAt(this.scene.position);
 
 	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
@@ -201,7 +130,7 @@ GAME.Game = function() {
 
 	this.scene.add(new THREE.AxisHelper(100));
 	this.createPlayer(this.scene);
-	this.mouseControls(this.camera, this.renderer, this.level.terrain.mesh);
+	// this.mouseControls(this.camera, this.renderer, this.level.terrain.mesh);
 
 	this.initScreenEvents();
 	this.initControls();
@@ -209,7 +138,6 @@ GAME.Game = function() {
 
 	this.scene.fog = new THREE.Fog(0x34583e, 0, 10000);
 
-	this.log("rendering...");
 	this.animateScene();
     };
 };

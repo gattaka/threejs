@@ -8,8 +8,11 @@ GAME.Utils.loadCollada = function(path, modifier, childrenModifier) {
 	    child.castShadow = true;
 	    child.receiveShadow = true;
 	    if (child instanceof THREE.SkinnedMesh) {
-		var animation = new THREE.Animation(child, child.geometry.animation);
-		animation.play();
+		console.log("child.geometry.animation: " + child.geometry.animation);
+		if (child.geometry.animation != undefined) {
+		    var animation = new THREE.Animation(child, child.geometry.animation);
+		    animation.play();
+		}
 	    }
 	    if (childrenModifier) {
 		childrenModifier(child);

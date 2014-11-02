@@ -1,6 +1,5 @@
 var GAME = GAME || {};
-GAME.Skybox = {};
-GAME.Skybox.create = function() {
+GAME.Skybox = function() {
     var imagePrefix = "textures/Skybox-";
     var directions = [ "Right", "Left", "Top", "Bottom", "Front", "Back" ];
     var imageSuffix = ".bmp";
