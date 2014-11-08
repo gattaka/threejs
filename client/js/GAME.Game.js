@@ -105,27 +105,13 @@ GAME.Game = function() {
 	    var b = target.x - position.x;
 	    var distance = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 
-	    // var direction;
-	    // if (a >= 0 && b >= 0) {
-	    // // I.
-	    // direction = Math.sin(b / distance);
-	    // } else if (a < 0 && b >= 0) {
-	    // // II.
-	    // direction = Math.PI - Math.sin(b / distance);
-	    // } else if (a < 0 && b < 0) {
-	    // // III.
-	    // direction = Math.sin(Math.abs(b) / distance) + Math.PI;
-	    // } else {
-	    // // IV.
-	    // direction = 2 * Math.PI - Math.sin(Math.abs(b));
-	    // }
-	    //
-	    // // Oproti jednotkové kružnici na které vypočítávám směr je ve scéně rotace braná, že na 90° má 0° a roste
-	    // // opačným směrem, takže musím odečítat 90° a obracet finální znaménko
-	    // p.mesh.rotation.y = -(direction - Math.PI / 2);
+	    // protáhní stávající cíl jinak se nakonci bude postava koukat jiným směrem
+	    // (počátek se otočí kolem cílového bodu a pohled se "sveze" jiným směrem)
+	    // musím zachovat poměr jinak změním směr, takže jednu dám jako 100 a druhou
+	    // jako 100 * poměr jejich původních délek
+	    var lookTargetZ = target.z + (a > 0 ? 100 : -100);
+	    var lookTargetX = target.x + (b > 0 ? 100 : -100) * Math.abs(b/a);
 
-	    p.mesh.lookAt(new THREE.Vector3(target.x, 0, target.z));
-	    
 	    var line;
 	    var tween = new TWEEN.Tween(position).to(target, distance / speed);
 	    tween.onStart(function() {
@@ -140,9 +126,14 @@ GAME.Game = function() {
 		game.scene.add(line);
 	    });
 	    tween.onUpdate(function() {
+		// musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
+		// onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
+		p.state = GAME.Player.WALK;
 		p.mesh.position.x = position.x;
 		p.mesh.position.z = position.z;
 		game.level.plantObject(p.mesh);
+		// počátek je u nohou, takže musí "koukat" na pozici přímo, kde stojí
+		p.mesh.lookAt(new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ));
 	    });
 	    tween.onComplete(function() {
 		p.state = GAME.Player.STAND;
