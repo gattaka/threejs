@@ -16,6 +16,8 @@ GAME.Player = function(scene) {
 	object3d.castShadow = true;
 	object3d.receiveShadow = true;
 	player.mesh = object3d;
+	var box = new THREE.Box3().setFromObject(object3d);
+	player.height = Math.abs(box.max.y - box.min.y);
 	scene.add(object3d);
     });
 
@@ -29,6 +31,7 @@ GAME.Player.prototype = {
     constructor : GAME.Player,
     state : GAME.Player.STAND,
     oldState : undefined,
+    height : undefined,
 
     animate : function(delta) {
 	var animation = this.animation;
@@ -53,7 +56,7 @@ GAME.Player.prototype = {
 	} else if (this.state == GAME.Player.WALK) {
 	    if (currentKeyFrame >= 5 || newState) {
 		animation.stop();
-		animation.timeScale = 1 / 20;
+		animation.timeScale = 1 / 10;
 		animation.play(3 / animation.data.fps);
 	    }
 	}
