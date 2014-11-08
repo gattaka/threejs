@@ -98,6 +98,25 @@ GAME.Game = function() {
 	});
     }
 
+    this.willCollide = function(x, y, z, mesh) {
+	var originPoint = new THREE.Vector3(x, y, z);
+
+	for (var vertexIndex = 0; vertexIndex < mesh.geometry.vertices.length; vertexIndex++) {
+	    var localVertex = mesh.geometry.vertices[vertexIndex].clone();
+	    var globalVertex = localVertex.applyMatrix4(mesh.matrix);
+	    var directionVector = globalVertex.sub(mesh.position);
+
+	    var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
+	    var collisionResults = ray.intersectObjects(game.level.collisionObjects);
+	    if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+		console.log("HIT");
+		return true;
+	    }
+	}
+
+	return false;
+    }
+
     this.run = function() {
 	/*
 	 * RENDERER

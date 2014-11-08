@@ -2,6 +2,7 @@ var GAME = GAME || {};
 
 GAME.Player = function(game) {
     var player = this;
+    player.game = game;
     var loader = new THREEx.UniversalLoader()
     loader.load('../models/armature_test.dae', function(object3d) {
 	object3d.traverse(function(child) {
@@ -35,6 +36,7 @@ GAME.Player.prototype = {
     state : GAME.Player.STAND,
     oldState : undefined,
     height : undefined,
+    game : undefined,
 
     animate : function(delta) {
 	var animation = this.animation;
@@ -99,26 +101,26 @@ GAME.Player.prototype = {
 	var lookTargetZ = target.z + (a > 0 ? 100 : -100);
 	var lookTargetX = target.x + (b > 0 ? 100 : -100) * Math.abs(b / a);
 
-	var line;
 	var tween = new TWEEN.Tween(position).to(target, distance / speed);
 	tween.onStart(function() {
 	    p.state = GAME.Player.WALK;
-	    var material = new THREE.LineBasicMaterial({
-		color : 0x0000ff
-	    });
-	    var geometry = new THREE.Geometry();
-	    geometry.vertices.push(new THREE.Vector3(position.x, 50, position.z));
-	    geometry.vertices.push(new THREE.Vector3(target.x, 50, target.z));
-	    line = new THREE.Line(geometry, material);
-	    game.scene.add(line);
 	});
 	tween.onUpdate(function() {
+
+	    var newYCoord = game.level.getPlantedHeight(position.x, position.z);
+
+	    if (game.willCollide(position.x, newYCoord, position.z, p.mesh.children[1].children[0])) {
+		p.state = GAME.Player.STAND;
+		tween.stop();
+		return;
+	    }
+
 	    // musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
 	    // onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
 	    p.state = GAME.Player.WALK;
 	    p.mesh.position.x = position.x;
+	    p.mesh.position.y = newYCoord;
 	    p.mesh.position.z = position.z;
-	    game.level.plantObject(p.mesh);
 	    // počátek je u nohou, takže musí "koukat" na pozici přímo, kde stojí
 	    p.mesh.lookAt(new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ));
 
@@ -128,7 +130,6 @@ GAME.Player.prototype = {
 	});
 	tween.onComplete(function() {
 	    p.state = GAME.Player.STAND;
-	    game.scene.remove(line);
 	});
 	tween.start();
     }
