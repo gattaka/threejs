@@ -4,11 +4,13 @@ GAME.Game = function() {
     this.container = document.body;
     this.renderer = undefined;
 
-    this.scene = new THREE.Scene();
     this.camera = undefined;
-
-    this.sceneOrtho = new THREE.Scene();
     this.cameraOrtho = undefined;
+
+    this.scene = new THREE.Scene();
+    this.sceneOrtho = new THREE.Scene();
+
+    this.composer = undefined;
 
     this.hud = undefined;
     this.level = undefined;
@@ -57,6 +59,7 @@ GAME.Game = function() {
 	    game.renderer.render(game.scene, game.camera);
 	    game.renderer.clearDepth();
 	    game.renderer.render(game.sceneOrtho, game.cameraOrtho);
+
 	    THREE.AnimationHandler.update(delay);
 
 	    // game.controls.update();
@@ -118,26 +121,29 @@ GAME.Game = function() {
     }
 
     this.run = function() {
+
 	/*
 	 * RENDERER
 	 */
+	var renderer;
 	if (Detector.webgl) {
-	    this.renderer = new THREE.WebGLRenderer({
+	    renderer = new THREE.WebGLRenderer({
 		antialias : true
 	    });
 	} else {
-	    this.renderer = new THREE.CanvasRenderer();
+	    renderer = new THREE.CanvasRenderer();
 	}
+	this.renderer = renderer;
 
-	this.renderer.setClearColor(0x000000, 1);
-	this.renderer.autoClear = false;
-	this.renderer.shadowMapEnabled = true;
-	this.renderer.shadowMapType = THREE.PCFSoftShadowMap;
+	renderer.setClearColor(0x000000, 1);
+	renderer.autoClear = false;
+	renderer.shadowMapEnabled = true;
+	renderer.shadowMapType = THREE.PCFSoftShadowMap;
 
 	var SCREEN_WIDTH = window.innerWidth;
 	var SCREEN_HEIGHT = window.innerHeight;
 
-	this.renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	this.container.appendChild(this.renderer.domElement);
 
 	/*
@@ -146,11 +152,12 @@ GAME.Game = function() {
 	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
 	this.camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
 	this.scene.add(this.camera);
-	this.scene.fog = new THREE.Fog(0x34583e, 0, 10000);
 
 	this.cameraOrtho = new THREE.OrthographicCamera(-SCREEN_WIDTH / 2, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
 		-SCREEN_HEIGHT / 2, 1, 10);
 	this.cameraOrtho.position.z = 10;
+
+	this.scene.fog = new THREE.Fog(0x34583e, 0, 10000);
 
 	/*
 	 * EVENT ENGINE
@@ -167,7 +174,7 @@ GAME.Game = function() {
 	/*
 	 * LEVEL
 	 */
-	this.level = new GAME.Level(this.scene);
+	this.level = new GAME.Level(this);
 	this.player = new GAME.Player(this);
 
 	/*

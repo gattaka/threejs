@@ -132,5 +132,5 @@ GAME.Player.prototype = {
 	    p.state = GAME.Player.STAND;
 	});
 	tween.start();
-    }
+    },
 }

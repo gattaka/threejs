@@ -1,6 +1,5 @@
 var GAME = GAME || {} ;
 GAME.BlendedMaterial = function(direction, texInner, texOuter, expX, expY) {
-
     return new THREE.ShaderMaterial({
 	uniforms : { // custom uniforms (your textures)
 	    tInner : {

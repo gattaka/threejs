@@ -1,5 +1,5 @@
 var GAME = GAME || {};
-GAME.Level = function(scene, xml) {
+GAME.Level = function(game, xml) {
 
     /**
      * Nahraj level data z XML
@@ -9,22 +9,22 @@ GAME.Level = function(scene, xml) {
     /**
      * Level Skybox
      */
-    this.createSkybox(scene);
+    this.createSkybox(game.scene);
 
     /**
      * Terrain
      */
-    this.createTerrain(scene);
+    this.createTerrain(game.scene);
 
     /**
      * Světla
      */
-    this.createLights(scene);
+    this.createLights(game.scene);
 
     /**
      * Objekty
      */
-    this.createObjects(scene);
+    this.createObjects(game);
 }
 
 GAME.Level.prototype = {
@@ -83,32 +83,35 @@ GAME.Level.prototype = {
 	this.spotlight = spotlight;
     },
 
-    createObjects : function(scene) {
-	var level = this;
+    createObjects : function(game) {
 
-	var texturePath = 'models/pinet1.png';
-	var texture = new THREE.ImageUtils.loadTexture(texturePath);
+	/*
+	 * MODEL
+	 */
+	var geometry = new THREE.BoxGeometry(20, 20, 20);
+	var c1 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
+	    color : 0xffaabb
+	}));
+	game.scene.add(c1);
+	c1.receiveShadow = true;
+	c1.castShadow = true;
+	c1.position.set(-50, 20, -50);
 
-	// Definition 2
-	var geometry = new THREE.BoxGeometry(20, 50, 20);
-	var material = new THREE.MeshLambertMaterial({
-	    map : texture,
-	    side : THREE.DoubleSide,
-	    transparent : true,
-	    depthWrite : false
+	var c2 = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+	    color : 0xff0000,
+	    side : THREE.BackSide
+	}));
+	c2.position.set(c1.position.x, c1.position.y, c1.position.z);
+	c2.scale.multiplyScalar(1.02);
+
+	game.domEvents.addEventListener(c1, "mouseover", function(event) {
+	    game.scene.add(c2);
 	});
-	var c1 = new THREE.Mesh(geometry, material);
-	var c2 = new THREE.Mesh(geometry, material);
+	game.domEvents.addEventListener(c2, "mouseout", function(event) {
+	    game.scene.remove(c2);
+	});
 
-	c1.position.set(-20, 0, -20);
-	c2.position.set(-40, 0, -20);
-
-	this.plantObject(c1, this.terrain);
-	this.plantObject(c2, this.terrain);
-	scene.add(c1);
-	scene.add(c2);
-
-	this.collisionObjects.push(c1, c2);
+	this.collisionObjects.push(c1);
 
 	// var terrain = this.terrain;
 	// GAME.loadCollada('models/wall.dae', function(obj) {
