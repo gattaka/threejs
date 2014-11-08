@@ -21,10 +21,12 @@ GAME.Game = function() {
     this.stats = undefined;
 
     this.animator = new GAME.Animator();
+    this.keyboardListeners = [];
 
     this.eventsHelper = {
 	mouseDown : false,
-	lastMoveTime : 0
+	lastMoveTime : 0,
+	lastClickTime : 0
     }
 
     this.createStats = function(container) {
@@ -74,13 +76,19 @@ GAME.Game = function() {
     };
 
     this.hitCheck = function(game) {
-	// if (game.keyboard.pressed("w") == true) {
-	// game.player.state = GAME.Player.WALK;
-	// } else {
-	// game.player.state = GAME.Player.STAND;
-	// }
-	// if (game.player.mesh)
-	// this.level.plantObject(game.player.mesh);
+	for (listener in game.keyboardListeners) {
+	    listener(game.keyboard);
+	}
+
+	// DEBUG
+	if (game.keyboard.pressed("h") == true) {
+	    var currentTime = game.clock.elapsedTime;
+	    // každých 500ms můžu dát úder
+	    if (currentTime - game.eventsHelper.lastClickTime > 0.5) {
+		game.player.state = GAME.Player.HIT;
+		game.eventsHelper.lastClickTime = currentTime;
+	    }
+	}
     }
 
     this.registerTerrainEvents = function(game) {

@@ -29,6 +29,7 @@ GAME.Player = function(game) {
 
 GAME.Player.STAND = 0;
 GAME.Player.WALK = 1;
+GAME.Player.HIT = 2;
 
 GAME.Player.prototype = {
 
@@ -63,6 +64,16 @@ GAME.Player.prototype = {
 		animation.stop();
 		animation.timeScale = 1 / 10;
 		animation.play(3 / animation.data.fps);
+	    }
+	} else if (this.state == GAME.Player.HIT) {
+	    if (newState) {
+		animation.stop();
+		animation.timeScale = 1 / 5;
+		animation.play(6 / animation.data.fps);
+	    }
+	    if (currentKeyFrame >= 9) {
+		animation.stop();
+		this.state = GAME.Player.STAND;
 	    }
 	}
 

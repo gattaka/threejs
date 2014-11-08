@@ -19,7 +19,7 @@ GAME.Terrain = function(terrainWidth, terrainDepth, texnames, heightMap) {
     var scale = 20;
     terrain.scale.x = terrainWidth * scale;
     terrain.scale.y = terrainDepth * scale;
-    terrain.scale.z = 100;
+    terrain.scale.z = 1;
     this.mesh = terrain;
 
     this.texnames = texnames;

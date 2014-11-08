@@ -45,7 +45,8 @@ GAME.Level.prototype = {
     },
 
     getPlantedHeight : function(x, z) {
-	return THREEx.Terrain.planeToHeightMapCoords(this.terrain.heightMap, this.terrain.mesh, x, z);
+//	return THREEx.Terrain.planeToHeightMapCoords(this.terrain.heightMap, this.terrain.mesh, x, z);
+	return 2;
     },
 
     createSkybox : function(scene) {
@@ -85,6 +86,8 @@ GAME.Level.prototype = {
 
     createObjects : function(game) {
 
+	var level = this;
+	
 	/*
 	 * MODEL
 	 */
@@ -111,23 +114,40 @@ GAME.Level.prototype = {
 	    game.scene.remove(c2);
 	});
 
-	this.collisionObjects.push(c1);
+	level.collisionObjects.push(c1);
 
-	// var terrain = this.terrain;
-	// GAME.loadCollada('models/wall.dae', function(obj) {
-	// GAME.Level.plantObject(obj, terrain);
-	// scene.add(obj);
-	// }, function(child) {
-	// var start = [ 10, 0, 5 ];
-	// for (var i = 0; i < 2; i++) {
-	// var obj = new THREE.Mesh(child.geometry, child.material);
-	// obj.position.set(start[0] + i * 16, start[1], start[2]);
-	// obj.castShadow = true;
-	// obj.receiveShadow = true;
-	// GAME.Level.plantObject(obj, terrain);
-	// scene.add(obj);
-	// }
-	// });
+	/*
+	 * MODUL
+	 */
+	var loader = new THREEx.UniversalLoader()
+	loader.load('../models/modul/modul.dae', function(object3d) {
+	    object3d.traverse(function(child) {
+		child.castShadow = true;
+		child.receiveShadow = true;
+		if (child instanceof THREE.Mesh) {
+		    var start = [ 0, 0, 0 ];
+		    var box = undefined;
+		    var height = 0;
+		    var width = 0;
+		    var depth = 0;
+		    for (var i = 0; i < 20; i++) {
+			var obj = new THREE.Mesh(child.geometry, child.material);
+			obj.scale.set(5, 5, 5);
+			if (box == undefined) {
+			    box = new THREE.Box3().setFromObject(obj);
+			    width = Math.abs(box.max.x - box.min.x);
+			    height = Math.abs(box.max.y - box.min.y);
+			    depth = Math.abs(box.max.z - box.min.z);
+			}
+			obj.position.set(start[0] + (i % 5) * width, start[1], start[2] + Math.floor(i / 5) * depth);
+			obj.castShadow = true;
+			obj.receiveShadow = true;
+			game.scene.add(obj);
+			level.collisionObjects.push(obj);
+		    }
+		}
+	    });
+	});
 
 	// GAME.Utils.loadCollada('../models/pine.dae', function(obj) {
 	// obj.scale.set(10, 10, 10);
