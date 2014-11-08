@@ -21,7 +21,8 @@ GAME.Game = function() {
     this.animator = new GAME.Animator();
 
     this.eventsHelper = {
-	mouseDown : false
+	mouseDown : false,
+	lastMoveTime : 0
     }
 
     this.createStats = function(container) {
@@ -88,8 +89,12 @@ GAME.Game = function() {
 	    game.eventsHelper.mouseDown = false;
 	});
 	game.domEvents.addEventListener(game.level.terrain.mesh, "mousemove", function(event) {
-	    // TODO filtering
-	    game.player.navigatePlayer(game, event);
+	    var currentTime = game.clock.elapsedTime;
+	    // každých 100ms beru pohyb myši jako novou polohu kam s hráčem jít
+	    if (currentTime - game.eventsHelper.lastMoveTime > 0.1) {
+		game.player.navigatePlayer(game, event);
+		game.eventsHelper.lastMoveTime = currentTime;
+	    }
 	});
     }
 
