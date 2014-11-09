@@ -12,9 +12,9 @@ GAME.Level = function(game, xml) {
     this.createSkybox(game.scene);
 
     /**
-     * Terrain
+     * Bloky -- prostředí
      */
-    this.createTerrain(game.scene);
+    this.createBlocks(game);
 
     /**
      * Světla
@@ -32,7 +32,7 @@ GAME.Level.prototype = {
     constructor : GAME.Level,
 
     skybox : undefined,
-    terrain : undefined,
+    blocks : [],
     amblight : undefined,
     spotlight : undefined,
     collisionObjects : [],
@@ -54,14 +54,48 @@ GAME.Level.prototype = {
 	scene.add(this.skybox);
     },
 
-    createTerrain : function(scene) {
-	var data = GAME.Utils.loadString('../maps/map.dat');
-	var terrain = GAME.Terrain.load(data);
+    /**
+     * Získá objekty, na kterých lze přes raycasting zjišťovat polohu pro navigaci hráče -- tedy objekty, po kterých
+     * může hráč nebo jiné postavy chodit
+     */
+    getObjectsForNavigation : function() {
+	// aktuálně to jsou všechny blocks
+	return this.blocks;
+    },
 
-	terrain.mesh.receiveShadow = true;
-	terrain.mesh.castShadow = true;
-	this.terrain = terrain;
-	scene.add(terrain.mesh);
+    /**
+     * Registruje události, které se mají stát při nějaké akci na daném bloku -- nejde o události navigace, ta je řešena
+     * jinde -- aktuálně jí řeší GAME.PlayerMover
+     */
+    registerBlockActions : function(game, mesh) {
+	// TODO časem ...
+    },
+
+    createBlocks : function(game) {
+	var level = this;
+
+	/*
+	 * MODUL
+	 */
+	loader = new THREE.JSONLoader();
+	loader.load("../models/modul/modul.json", function(geometry, materials) {
+	    var scale = 5;
+	    var width = 10 * scale;
+	    var depth = 10 * scale;
+	    var start = [ -5.5 * width, 1, -5 * depth ];
+	    var grid = 10;
+	    for (var i = 0; i < grid * grid; i++) {
+		mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
+		mesh.scale.set(scale, scale, scale);
+		mesh.position.set(start[0] + (i % grid) * width, start[1], start[2] + Math.floor(i / grid) * depth);
+		mesh.castShadow = true;
+		mesh.receiveShadow = true;
+		game.scene.add(mesh);
+		level.collisionObjects.push(mesh);
+		level.blocks.push(mesh);
+		level.registerBlockActions(game, mesh);
+	    }
+	});
     },
 
     createLights : function(scene) {
@@ -76,8 +110,8 @@ GAME.Level.prototype = {
 	spotlight.shadowCameraVisible = false;
 	spotlight.shadowDarkness = 0.75;
 	spotlight.intensity = 0.7;
-//	spotlight.shadowMapWidth = 1024; // default is 512
-//	spotlight.shadowMapHeight = 1024; // default is 512
+	// spotlight.shadowMapWidth = 1024; // default is 512
+	// spotlight.shadowMapHeight = 1024; // default is 512
 	// must enable shadow casting ability for the light
 	spotlight.castShadow = true;
 	scene.add(spotlight);
@@ -89,7 +123,7 @@ GAME.Level.prototype = {
 	var level = this;
 
 	/*
-	 * MODEL
+	 * TESTBOX
 	 */
 	var geometry = new THREE.BoxGeometry(20, 20, 20);
 	var c1 = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
@@ -115,34 +149,6 @@ GAME.Level.prototype = {
 	});
 
 	level.collisionObjects.push(c1);
-
-	/*
-	 * MODUL
-	 */
-	loader = new THREE.JSONLoader();
-	loader.load("../models/modul/modul.json", function(geometry, materials) {
-	    var start = [ 0, 1, 0 ];
-	    var box = undefined;
-	    var height = 0;
-	    var width = 0;
-	    var depth = 0;
-	    var side = 10;
-	    for (var i = 0; i < side * side; i++) {
-		mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-		mesh.scale.set(5, 5, 5);
-		if (box == undefined) {
-		    box = new THREE.Box3().setFromObject(mesh);
-		    width = Math.abs(box.max.x - box.min.x);
-		    height = Math.abs(box.max.y - box.min.y);
-		    depth = Math.abs(box.max.z - box.min.z);
-		}
-		mesh.position.set(start[0] + (i % side) * width, start[1], start[2] + Math.floor(i / side) * depth);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		game.scene.add(mesh);
-		level.collisionObjects.push(mesh);
-	    }
-	});
 
 	// GAME.Utils.loadCollada('../models/pine.dae', function(obj) {
 	// obj.scale.set(10, 10, 10);

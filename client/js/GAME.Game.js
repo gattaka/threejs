@@ -20,14 +20,12 @@ GAME.Game = function() {
     this.clock = new THREE.Clock();
     this.stats = undefined;
 
+    this.playerMover = undefined;
+
     this.animator = new GAME.Animator();
     this.keyboardListeners = [];
 
-    this.eventsHelper = {
-	mouseDown : false,
-	lastMoveTime : 0,
-	lastClickTime : 0
-    }
+    this.cycleCallbacks = [];
 
     this.createStats = function(container) {
 	var stats = new Stats();
@@ -64,11 +62,13 @@ GAME.Game = function() {
 
 	    THREE.AnimationHandler.update(delay);
 
-	    // game.controls.update();
-
 	    game.stats.update();
 	    game.hitCheck(game);
-	    game.player.animate(delay);
+
+	    // volej všechny zaregistrované callbacky
+	    for (callback in game.cycleCallbacks) {
+		game.cycleCallbacks[callback](delay);
+	    }
 
 	    TWEEN.update();
 	};
@@ -89,24 +89,6 @@ GAME.Game = function() {
 		game.eventsHelper.lastClickTime = currentTime;
 	    }
 	}
-    }
-
-    this.registerTerrainEvents = function(game) {
-	game.domEvents.addEventListener(game.level.terrain.mesh, "mousedown", function(event) {
-	    game.eventsHelper.mouseDown = true;
-	    game.player.navigatePlayer(game, event);
-	});
-	game.domEvents.addEventListener(game.level.terrain.mesh, "mouseup", function(event) {
-	    game.eventsHelper.mouseDown = false;
-	});
-	game.domEvents.addEventListener(game.level.terrain.mesh, "mousemove", function(event) {
-	    var currentTime = game.clock.elapsedTime;
-	    // každých 100ms beru pohyb myši jako novou polohu kam s hráčem jít
-	    if (currentTime - game.eventsHelper.lastMoveTime > 0.1) {
-		game.player.navigatePlayer(game, event);
-		game.eventsHelper.lastMoveTime = currentTime;
-	    }
-	});
     }
 
     this.willCollide = function(x, y, z, mesh) {
@@ -188,8 +170,8 @@ GAME.Game = function() {
 	/*
 	 * EVENTS -- již na připravených objektech
 	 */
-	this.registerTerrainEvents(this);
 	this.initScreenEvents(this);
+	this.playerMover = new GAME.PlayerMover(this);
 
 	this.animateScene();
     };

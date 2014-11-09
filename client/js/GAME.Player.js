@@ -25,6 +25,10 @@ GAME.Player = function(game) {
 	player.targetCamera(game.camera, player);
     });
 
+    game.cycleCallbacks.push(function(delta) {
+	player.animate(delta, player)
+    });
+
 }
 
 GAME.Player.STAND = 0;
@@ -39,8 +43,11 @@ GAME.Player.prototype = {
     height : undefined,
     game : undefined,
 
-    animate : function(delta) {
-	var animation = this.animation;
+    /**
+     * Animuje objekt hráče dle zadaného stavu
+     */
+    animate : function(delta, player) {
+	var animation = player.animation;
 	if (animation == undefined)
 	    return;
 	animation.update(delta);
@@ -51,21 +58,21 @@ GAME.Player.prototype = {
 	var currentTime = animation.currentTime = animation.currentTime % animation.data.length;
 	var currentKeyFrame = Math.min(currentTime * animation.data.fps, animation.data.length * animation.data.fps);
 
-	var newState = !(this.oldState == this.state);
+	var newState = !(player.oldState == player.state);
 
-	if (this.state == GAME.Player.STAND) {
+	if (player.state == GAME.Player.STAND) {
 	    if (currentKeyFrame >= 2 || newState) {
 		animation.stop();
 		animation.timeScale = 1 / 50;
 		animation.play(0);
 	    }
-	} else if (this.state == GAME.Player.WALK) {
+	} else if (player.state == GAME.Player.WALK) {
 	    if (currentKeyFrame >= 5 || newState) {
 		animation.stop();
 		animation.timeScale = 1 / 10;
 		animation.play(3 / animation.data.fps);
 	    }
-	} else if (this.state == GAME.Player.HIT) {
+	} else if (player.state == GAME.Player.HIT) {
 	    if (newState) {
 		animation.stop();
 		animation.timeScale = 1 / 5;
@@ -73,11 +80,11 @@ GAME.Player.prototype = {
 	    }
 	    if (currentKeyFrame >= 9) {
 		animation.stop();
-		this.state = GAME.Player.STAND;
+		player.state = GAME.Player.STAND;
 	    }
 	}
 
-	this.oldState = this.state;
+	player.oldState = player.state;
     },
 
     targetCamera : function(camera, player) {
@@ -87,17 +94,15 @@ GAME.Player.prototype = {
 	camera.lookAt(player.mesh.position);
     },
 
-    navigatePlayer : function(game, event) {
+    navigatePlayer : function(game, targetX, targetZ) {
 	var p = game.player;
-	if (p.mesh == undefined || game.eventsHelper.mouseDown == false)
-	    return;
 	var position = {
 	    x : p.mesh.position.x,
 	    z : p.mesh.position.z
 	};
 	var target = {
-	    x : event.intersect.point.x,
-	    z : event.intersect.point.z
+	    x : targetX,
+	    z : targetZ
 	};
 
 	var speed = 0.1; // jednotek za sekundu
@@ -120,11 +125,11 @@ GAME.Player.prototype = {
 
 	    var newYCoord = game.level.getPlantedHeight(position.x, position.z);
 
-	    if (game.willCollide(position.x, newYCoord, position.z, p.mesh.children[1].children[0])) {
-		p.state = GAME.Player.STAND;
-		tween.stop();
-		return;
-	    }
+	    // if (game.willCollide(position.x, newYCoord, position.z, p.mesh.children[1].children[0])) {
+	    // p.state = GAME.Player.STAND;
+	    // tween.stop();
+	    // return;
+	    // }
 
 	    // musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
 	    // onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
