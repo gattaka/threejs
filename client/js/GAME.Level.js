@@ -79,11 +79,11 @@ GAME.Level.prototype = {
 	 */
 	loader = new THREE.JSONLoader();
 	loader.load("../models/modul/modul.json", function(geometry, materials) {
+	    var grid = 20;
 	    var scale = 5;
 	    var width = 10 * scale;
 	    var depth = 10 * scale;
-	    var start = [ -5.5 * width, 1, -5 * depth ];
-	    var grid = 10;
+	    var start = [ -((grid / 2) + 0.5) * width, 1, -(grid / 2) * depth ];
 	    for (var i = 0; i < grid * grid; i++) {
 		mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
 		mesh.scale.set(scale, scale, scale);

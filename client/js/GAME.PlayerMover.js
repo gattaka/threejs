@@ -81,8 +81,9 @@ GAME.PlayerMover.prototype = {
 	if (intersects.length == 0)
 	    return;
 
-	// TODO tady by se mělo vyhledat nějak podle Z vrstvy, co je ten terén
-	var intersect = intersects[0];
+	// Musí brát až poslední průnik, jinak se bude snažit lézt i na ty transparentní sloupy, které jsou zatím
+	// součástí stejného meshe jako je povrch po kterém se naviguje
+	var intersect = intersects[intersects.length - 1];
 	var x = intersect.point.x;
 	var z = intersect.point.z;
 
