@@ -74,28 +74,58 @@ GAME.Level.prototype = {
     createBlocks : function(game) {
 	var level = this;
 
-	/*
-	 * MODUL
-	 */
+	var grid = 4;
+	var scale = 5;
+	var side = 10 * scale;
+	var start = [ -((grid / 2) + 0.5) * side, 1, -(grid / 2) * side ];
+
 	loader = new THREE.JSONLoader();
-	loader.load("../models/modul/modul.json", function(geometry, materials) {
-	    var grid = 20;
-	    var scale = 5;
-	    var width = 10 * scale;
-	    var depth = 10 * scale;
-	    var start = [ -((grid / 2) + 0.5) * width, 1, -(grid / 2) * depth ];
-	    for (var i = 0; i < grid * grid; i++) {
-		mesh = new THREE.Mesh(geometry, new THREE.MeshFaceMaterial(materials));
-		mesh.scale.set(scale, scale, scale);
-		mesh.position.set(start[0] + (i % grid) * width, start[1], start[2] + Math.floor(i / grid) * depth);
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		game.scene.add(mesh);
-		level.collisionObjects.push(mesh);
-		level.blocks.push(mesh);
-		level.registerBlockActions(game, mesh);
+
+	var modules = [];
+	var modulesToLoad = [ "modul", "modul2", "modul3", "modul4_coffin" ];
+
+	var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], 
+	            [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ],
+	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], 
+	            [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ], 
+	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ],
+	            [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+		];
+
+	var buildMap = function() {
+	    for (i in map) {
+		var row = map[i];
+		for (j in row) {
+		    var moduleIndex = row[j];
+		    var module = modules[moduleIndex];
+		    mesh = new THREE.Mesh(module.geometry, module.material);
+		    mesh.scale.set(scale, scale, scale);
+		    mesh.position.set(start[0] + i * side, start[1], start[2] + j * side);
+		    mesh.castShadow = true;
+		    mesh.receiveShadow = true;
+		    game.scene.add(mesh);
+		    level.collisionObjects.push(mesh);
+		    level.blocks.push(mesh);
+		    level.registerBlockActions(game, mesh);
+		}
 	    }
-	});
+	}
+
+	var modelsLoaded = 0;
+	for (i in modulesToLoad) {
+	    var moduleUrl = "../models/modul/" + modulesToLoad[i] + ".json";
+	    loader.load(moduleUrl, function(geometry, materials) {
+		modules.push({
+		    geometry : geometry,
+		    material : new THREE.MeshFaceMaterial(materials)
+		});
+		modelsLoaded++;
+		// jsou nahrané všechny moduly, postav mapu
+		if (modelsLoaded == modulesToLoad.length)
+		    buildMap();
+	    });
+	}
     },
 
     createLights : function(scene) {
