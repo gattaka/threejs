@@ -82,10 +82,15 @@ GAME.Level.prototype = {
 	loader = new THREE.JSONLoader();
 
 	var modules = [];
-	var modulesToLoad = [ "modul", "modul2", "modul3", "modul4_coffin" ];
+	// var modulesToLoad = [ "modul", "modul2", "modul3", "modul4_coffin" ];
+	var modulesToLoad = [ "modul" ];
 
-	var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ],
-		[ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ],
+	// var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ],
+	// [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ],
+	// [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], ];
+
+	var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
+		[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
 		[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], ];
 
 	var buildMap = function() {
@@ -94,15 +99,31 @@ GAME.Level.prototype = {
 		for (j in row) {
 		    var moduleIndex = row[j];
 		    var module = modules[moduleIndex];
-		    // var mesh = new THREE.Mesh(module.geometry, module.material);
-		    var mesh = new Physijs.ConvexMesh(module.geometry, module.material);
+		    
+		    /*
+		     * Obstacle
+		     */
+		    var part = module["obstacle"];
+		    var mesh = new Physijs.BoxMesh(part.geometry, part.material);
+		    mesh.mass = 0;
+		    mesh.scale.set(scale, scale, scale);
+		    mesh.position.set(start[0] + i * side, start[1], start[2] + j * side);
+		    mesh.castShadow = true;
+		    mesh.receiveShadow = true;
+		    mesh.tag = "obstacle";
+		    game.scene.add(mesh);
+		    
+		    /*
+		     * Ground
+		     */
+		    part = module["ground"];
+		    var mesh = new Physijs.BoxMesh(part.geometry, part.material);
 		    mesh.mass = 0;
 		    mesh.scale.set(scale, scale, scale);
 		    mesh.position.set(start[0] + i * side, start[1], start[2] + j * side);
 		    mesh.castShadow = true;
 		    mesh.receiveShadow = true;
 		    game.scene.add(mesh);
-		    level.collisionObjects.push(mesh);
 		    level.blocks.push(mesh);
 		    level.registerBlockActions(game, mesh);
 		}
@@ -111,17 +132,26 @@ GAME.Level.prototype = {
 
 	var modelsLoaded = 0;
 	for (i in modulesToLoad) {
-	    var moduleUrl = "../models/modul/" + modulesToLoad[i] + ".json";
-	    loader.load(moduleUrl, function(geometry, materials) {
-		modules.push({
-		    geometry : geometry,
-		    material : new THREE.MeshFaceMaterial(materials)
+	    var loadFnc = function(index, url, type) {
+		loader.load(url, function(geometry, materials) {
+		    if (modules[index] == undefined)
+			modules[index] = {
+			    obstacle : undefined,
+			    ground : undefined
+			};
+		    modules[index][type] = {
+			geometry : geometry,
+			material : new THREE.MeshFaceMaterial(materials)
+		    };
+		    modelsLoaded++;
+		    // jsou nahrané všechny moduly, postav mapu
+		    if (modelsLoaded == modulesToLoad.length * 2)
+			buildMap();
 		});
-		modelsLoaded++;
-		// jsou nahrané všechny moduly, postav mapu
-		if (modelsLoaded == modulesToLoad.length)
-		    buildMap();
-	    });
+	    }
+	    loadFnc(i, "../models/modul/" + modulesToLoad[i] + ".json", "obstacle");
+	    loadFnc(i, "../models/modul/" + modulesToLoad[i] + "_ground.json", "ground");
+
 	}
     },
 

@@ -41,3 +41,25 @@ GAME.Utils.loadString = function(url) {
     xmlhttp.send();
     return xmlhttp.responseText;
 }
+
+GAME.Utils.showBoundingBox = function(game, mesh) {
+    var geometry = mesh.geometry;
+    var scale = mesh.scale.x; // předpokladem je, že jsou všechny strany zvětšeny stejně (což většinou je)
+    var width = (geometry.boundingBox.max.x - geometry.boundingBox.min.x) * scale;
+    var height = (geometry.boundingBox.max.y - geometry.boundingBox.min.y) * scale;
+    var depth = (geometry.boundingBox.max.z - geometry.boundingBox.min.z) * scale;
+    var box = new THREE.BoxGeometry(width, height, depth, 1, 1, 1);
+
+    var pMesh = new THREE.Mesh(box, new THREE.MeshBasicMaterial({
+	color : 0xaaff00,
+	wireframe : true
+    }), 0);
+    game.scene.add(pMesh);
+    pMesh.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
+
+    // aby se to ukazovalo i během animace
+    game.scene.addEventListener('update', function() {
+	pMesh.position.set(mesh.position.x, mesh.position.y, mesh.position.z);
+	pMesh.rotation.set(mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
+    });
+}

@@ -17,20 +17,31 @@ GAME.Player = function(game) {
 	object3d.scale.set(scale, scale, scale);
 	object3d.castShadow = true;
 	object3d.receiveShadow = true;
-	player.mesh = object3d;
 	var box = new THREE.Box3().setFromObject(object3d);
 	player.height = Math.abs(box.max.y - box.min.y);
 	game.scene.add(object3d);
 
-	player.targetCamera(game.camera, player);
-	player.boundingBox = box;
+	/*
+	 * Physijs mesh
+	 */
+	var width = (box.max.x - box.min.x) * scale;
+	var height = (box.max.y - box.min.y) * scale;
+	var depth = (box.max.z - box.min.z) * scale;
+	var pMeshGeometry = new THREE.BoxGeometry(width, height, depth, 1, 1, 1);
+	var pMesh = new Physijs.BoxMesh(pMeshGeometry, new THREE.MeshBasicMaterial({
+	    color : 0xaaff00,
+	    wireframe : true
+	}), 2000);
+	pMesh.position.set(0, 50, 0);
+	player.mesh = pMesh;
+	game.scene.add(pMesh);
+	game.scene.addEventListener('update', function() {
+	    object3d.position.set(pMesh.position.x, pMesh.position.y - height / 2, pMesh.position.z);
+	    object3d.rotation.set(pMesh.rotation.x, pMesh.rotation.y, pMesh.rotation.z);
+	    player.targetCamera(game.camera, player);
+	});
 
-	var bbox = new THREE.BoundingBoxHelper(object3d, 0xff0000);
-	game.scene.add(bbox);
-	bbox.update(); // jenom při init, dále se volat nedá, protože chci aby se natáčela a zůstal jí tvar
-	bbox.position.y = object3d.position.y + player.height / 2 + GAME.Player.BoundingYOffset;
-	bbox.scale.y = 1;
-	player.bbox = bbox;
+	player.targetCamera(game.camera, player);
     });
 
     game.cycleCallbacks.push(function(delta) {
@@ -53,7 +64,6 @@ GAME.Player.prototype = {
     height : undefined,
     game : undefined,
     boundingBox : undefined,
-    bbox : undefined,
 
     /**
      * Animuje objekt hráče dle zadaného stavu
@@ -118,10 +128,17 @@ GAME.Player.prototype = {
 	    z : targetZ
 	};
 
-	var speed = 0.1; // jednotek za sekundu
+	var speed = 50; // "diagonálních" jednotek za sekundu
 	var a = target.z - position.z;
 	var b = target.x - position.x;
 	var distance = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	var zSpeed = (a / distance) * speed; // rychlost na odvěsně a (osa z)
+	var xSpeed = (b / distance) * speed; // rychlost na odvěsně b (osa x)
+	
+	var currentSpeedVector = p.mesh.getLinearVelocity();
+	currentSpeedVector.x = xSpeed;
+	currentSpeedVector.z = zSpeed;
+	p.mesh.setLinearVelocity(currentSpeedVector);
 
 	// protáhní stávající cíl jinak se nakonci bude postava koukat jiným směrem
 	// (počátek se otočí kolem cílového bodu a pohled se "sveze" jiným směrem)
@@ -130,42 +147,37 @@ GAME.Player.prototype = {
 	var lookTargetZ = target.z + (a > 0 ? 100 : -100);
 	var lookTargetX = target.x + (b > 0 ? 100 : -100) * Math.abs(b / a);
 
-	var tween = new TWEEN.Tween(position).to(target, distance / speed);
-	tween.onStart(function() {
-	    p.state = GAME.Player.WALK;
-	});
-	tween.onUpdate(function() {
-
-	    var newYCoord = game.level.getPlantedHeight(position.x, position.z) + 1;
-
-	    if (game.willCollide(position.x, newYCoord, position.z, p.bbox)) {
-		p.state = GAME.Player.STAND;
-		tween.stop();
-		return;
-	    }
-
-	    // musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
-	    // onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
-	    p.state = GAME.Player.WALK;
-	    p.mesh.position.x = position.x;
-	    p.mesh.position.y = newYCoord;
-	    p.mesh.position.z = position.z;
-	    // počátek je u nohou, takže musí "koukat" na pozici přímo, kde stojí
-	    var lookAtVector = new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ);
-	    p.mesh.lookAt(lookAtVector);
-//	    p.bbox.lookAt(lookAtVector);
-
-	    // CAMERA
-	    p.targetCamera(game.camera, p);
-
-	    p.bbox.position.x = p.mesh.position.x;
-	    p.bbox.position.y = p.mesh.position.y + p.height / 2 + GAME.Player.BoundingYOffset;
-	    p.bbox.position.z = p.mesh.position.z;
-
-	});
-	tween.onComplete(function() {
-	    p.state = GAME.Player.STAND;
-	});
-	tween.start();
+	// var tween = new TWEEN.Tween(position).to(target, distance / speed);
+	// tween.onStart(function() {
+	// p.state = GAME.Player.WALK;
+	// });
+	// tween.onUpdate(function() {
+	//
+	// var newYCoord = game.level.getPlantedHeight(position.x, position.z) + 1;
+	//
+	// // if (game.willCollide(position.x, newYCoord, position.z, p.bbox)) {
+	// // p.state = GAME.Player.STAND;
+	// // tween.stop();
+	// // return;
+	// // }
+	//
+	// // musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
+	// // onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
+	// p.state = GAME.Player.WALK;
+	// p.mesh.position.x = position.x;
+	// p.mesh.position.y = newYCoord;
+	// p.mesh.position.z = position.z;
+	// // počátek je u nohou, takže musí "koukat" na pozici přímo, kde stojí
+	// var lookAtVector = new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ);
+	// p.mesh.lookAt(lookAtVector);
+	// // p.bbox.lookAt(lookAtVector);
+	//
+	// // CAMERA
+	// p.targetCamera(game.camera, p);
+	// });
+	// tween.onComplete(function() {
+	// p.state = GAME.Player.STAND;
+	// });
+	// tween.start();
     },
 }

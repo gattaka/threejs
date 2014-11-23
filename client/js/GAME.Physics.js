@@ -212,7 +212,7 @@ GAME.Physics = function() {
 	var box2 = new Physijs.BoxMesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
 	    color : 0x00ff00
 	}));
-	box2.position.set(0, 100, 2);
+	box2.position.set(5, 5, 1);
 	this.scene.add(box2);
 	this.testbox2 = box2;
 
@@ -238,9 +238,8 @@ GAME.Physics = function() {
 	// ground.receiveShadow = true;
 	// this.scene.add(ground);
 
-	var moduleUrl = "../models/modul/column_ground.json";
-	loader.load(moduleUrl, function(geometry, materials) {
-	    var scale = 10;
+	loader.load("../models/modul/column_ground.json", function(geometry, materials) {
+	    var scale = 100;
 	    var mesh = new Physijs.BoxMesh(geometry, new THREE.MeshFaceMaterial(materials));
 	    mesh.mass = 0;
 	    mesh.scale.set(scale, scale, scale);
@@ -250,22 +249,70 @@ GAME.Physics = function() {
 	    game.scene.add(mesh);
 	});
 
+	loader.load("../models/modul/column.json", function(geometry, materials) {
+	    var scale = 10;
+	    var mesh = new Physijs.BoxMesh(geometry, new THREE.MeshFaceMaterial(materials));
+	    mesh.scale.set(scale, scale, scale);
+	    // var height = (geometry.boundingBox.max.y - geometry.boundingBox.min.y) * scale;
+	    // mesh.position.set(50, height / 2, 70);
+	    mesh.position.set(20, 0, 20);
+	    mesh.castShadow = true;
+	    mesh.receiveShadow = true;
+	    mesh.mass = 0;
+
+	    // identifikátor překážek
+	    mesh.tag = "obstacle";
+
+	    game.scene.add(mesh);
+
+	    GAME.Utils.showBoundingBox(game, mesh);
+	});
+
 	loader.load("../models/modul/angel.json", function(geometry, materials) {
 	    var scale = 5;
 	    var mesh = new Physijs.BoxMesh(geometry, new THREE.MeshFaceMaterial(materials));
 	    mesh.scale.set(scale, scale, scale);
-	    mesh.position.set(0, 50, 0);
-	    mesh.rotation.x = 0.5;
+	    mesh.position.set(-20, 10, -20);
 	    mesh.castShadow = true;
 	    mesh.receiveShadow = true;
-	    // mesh.__dirtyPosition = true;
-	    // mesh.__dirtyRotation = true;
-	    mesh.mass = 2000;
+	    mesh.mass = 5000;
 	    game.angel = mesh;
 	    game.scene.add(mesh);
+
+	    game.move(game);
+	    GAME.Utils.showBoundingBox(game, mesh);
 	});
 
 	this.animateScene();
     };
+
+    this.move = function(game) {
+
+	var p = game.angel;
+	p.setLinearVelocity(new THREE.Vector3(50, 0, 50));
+
+	 var position = {
+	 x : p.position.x,
+	 z : p.position.z
+	 };
+	 var target = {
+	 x : 20,
+	 z : 20
+	 };
+	
+	 var speed = 0.01; // jednotek za sekundu
+	 var a = target.z - position.z;
+	 var b = target.x - position.x;
+	 var distance = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+	
+	p.addEventListener('collision', function(other_object, linear_velocity, angular_velocity) {
+	    if (other_object.tag == "obstacle") {
+		// zastav otáčení a posuv způsobený nárazem
+		p.setLinearVelocity(new THREE.Vector3(0, 0, 0));
+		p.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+	    }
+	});
+	// tween.start();
+    }
 
 };

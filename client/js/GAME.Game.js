@@ -94,25 +94,6 @@ GAME.Game = function() {
 	}
     }
 
-    this.willCollide = function(x, y, z, mesh) {
-	var originPoint = new THREE.Vector3(x, y, z);
-
-	for (var vertexIndex = 0; vertexIndex < mesh.geometry.vertices.length; vertexIndex++) {
-	    var localVertex = mesh.geometry.vertices[vertexIndex].clone();
-	    var globalVertex = localVertex.applyMatrix4(mesh.matrix);
-	    var directionVector = globalVertex.sub(mesh.position);
-
-	    var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
-	    var collisionResults = ray.intersectObjects(game.level.collisionObjects);
-	    if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
-		console.log("HIT");
-		return true;
-	    }
-	}
-
-	return false;
-    }
-
     this.run = function() {
 
 	/*
@@ -187,19 +168,10 @@ GAME.Game = function() {
 	/*
 	 * test fyziky
 	 */
-	// Box
-	var box = new Physijs.BoxMesh(new THREE.CubeGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
-	    color : 0x888888
-	}));
-	box.mass = 0; // aby nepadala
-	box.position.set(0, 10, 0);
-	this.scene.add(box);
-	this.testbox = box;
-
 	var box2 = new Physijs.BoxMesh(new THREE.CubeGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
 	    color : 0x00ff00
 	}));
-	box2.position.set(-20, 100, 103);
+	box2.position.set(10, 50, 103);
 	this.scene.add(box2);
 	this.testbox2 = box2;
 
