@@ -82,7 +82,8 @@ GAME.PlayerMover.prototype = {
 	    return;
 
 	// Musí brát až poslední průnik, jinak se bude snažit lézt i na ty transparentní sloupy, které jsou zatím
-	// součástí stejného meshe jako je povrch po kterém se naviguje
+	// součástí stejného meshe jako je povrch po kterém se naviguje -- TODO jak to udělat, aby se tedy nenavigovalo
+	// do "děr" apod.? Na druhou stranu ... do díry hráč spadnou vlastně může
 	var intersect = intersects[intersects.length - 1];
 	var x = intersect.point.x;
 	var z = intersect.point.z;

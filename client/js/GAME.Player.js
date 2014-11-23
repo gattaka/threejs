@@ -23,6 +23,14 @@ GAME.Player = function(game) {
 	game.scene.add(object3d);
 
 	player.targetCamera(game.camera, player);
+	player.boundingBox = box;
+
+	var bbox = new THREE.BoundingBoxHelper(object3d, 0xff0000);
+	game.scene.add(bbox);
+	bbox.update(); // jenom při init, dále se volat nedá, protože chci aby se natáčela a zůstal jí tvar
+	bbox.position.y = object3d.position.y + player.height / 2 + GAME.Player.BoundingYOffset;
+	bbox.scale.y = 1;
+	player.bbox = bbox;
     });
 
     game.cycleCallbacks.push(function(delta) {
@@ -35,6 +43,8 @@ GAME.Player.STAND = 0;
 GAME.Player.WALK = 1;
 GAME.Player.HIT = 2;
 
+GAME.Player.BoundingYOffset = 1;
+
 GAME.Player.prototype = {
 
     constructor : GAME.Player,
@@ -42,6 +52,8 @@ GAME.Player.prototype = {
     oldState : undefined,
     height : undefined,
     game : undefined,
+    boundingBox : undefined,
+    bbox : undefined,
 
     /**
      * Animuje objekt hráče dle zadaného stavu
@@ -95,6 +107,7 @@ GAME.Player.prototype = {
     },
 
     navigatePlayer : function(game, targetX, targetZ) {
+
 	var p = game.player;
 	var position = {
 	    x : p.mesh.position.x,
@@ -123,13 +136,13 @@ GAME.Player.prototype = {
 	});
 	tween.onUpdate(function() {
 
-	    var newYCoord = game.level.getPlantedHeight(position.x, position.z);
+	    var newYCoord = game.level.getPlantedHeight(position.x, position.z) + 1;
 
-	    // if (game.willCollide(position.x, newYCoord, position.z, p.mesh.children[1].children[0])) {
-	    // p.state = GAME.Player.STAND;
-	    // tween.stop();
-	    // return;
-	    // }
+	    if (game.willCollide(position.x, newYCoord, position.z, p.bbox)) {
+		p.state = GAME.Player.STAND;
+		tween.stop();
+		return;
+	    }
 
 	    // musí se přepisovat -- v případě, že je během chůze zadán nový cíl, může se stát, že jeho původní
 	    // onComplete nastaví předčasně p.state = GAME.Player.STAND; ačkoliv už se pokračuje v novém pochodu
@@ -138,10 +151,16 @@ GAME.Player.prototype = {
 	    p.mesh.position.y = newYCoord;
 	    p.mesh.position.z = position.z;
 	    // počátek je u nohou, takže musí "koukat" na pozici přímo, kde stojí
-	    p.mesh.lookAt(new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ));
+	    var lookAtVector = new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ);
+	    p.mesh.lookAt(lookAtVector);
+//	    p.bbox.lookAt(lookAtVector);
 
 	    // CAMERA
 	    p.targetCamera(game.camera, p);
+
+	    p.bbox.position.x = p.mesh.position.x;
+	    p.bbox.position.y = p.mesh.position.y + p.height / 2 + GAME.Player.BoundingYOffset;
+	    p.bbox.position.z = p.mesh.position.z;
 
 	});
 	tween.onComplete(function() {

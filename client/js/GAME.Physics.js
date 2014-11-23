@@ -1,5 +1,5 @@
 var GAME = GAME || {};
-GAME.Game = function() {
+GAME.Physics = function() {
 
     this.container = document.body;
     this.renderer = undefined;
@@ -16,13 +16,14 @@ GAME.Game = function() {
     this.level = undefined;
     this.player = undefined;
 
+    this.controls = undefined;
+
     this.keyboard = new THREEx.KeyboardState();
     this.clock = new THREE.Clock();
     this.stats = undefined;
 
     this.playerMover = undefined;
 
-    this.animator = new GAME.Animator();
     this.keyboardListeners = [];
 
     this.cycleCallbacks = [];
@@ -72,6 +73,7 @@ GAME.Game = function() {
 	    }
 
 	    TWEEN.update();
+	    game.controls.update();
 
 	    requestAnimationFrame(arguments.callee);
 	};
@@ -168,41 +170,102 @@ GAME.Game = function() {
 	/*
 	 * UTIL OBJEKTY
 	 */
-	this.hud = new GAME.HUD(this.sceneOrtho);
 	this.scene.add(new THREE.AxisHelper(100));
 	this.stats = this.createStats(this.container);
-
-	/*
-	 * LEVEL
-	 */
-	this.level = new GAME.Level(this);
-	this.player = new GAME.Player(this);
 
 	/*
 	 * EVENTS -- již na připravených objektech
 	 */
 	this.initScreenEvents(this);
-	this.playerMover = new GAME.PlayerMover(this);
+	this.controls = new THREE.OrbitControls(this.camera, this.container);
 
 	/*
-	 * test fyziky
+	 * TEST FYZIKY
 	 */
-	// Box
-	var box = new Physijs.BoxMesh(new THREE.CubeGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
-	    color : 0x888888
-	}));
-	box.mass = 0; // aby nepadala
-	box.position.set(0, 10, 0);
-	this.scene.add(box);
-	this.testbox = box;
+	this.camera.position.set(100, 200, 200);
+	this.camera.lookAt(new THREE.Vector3(0, 0, 0));
 
-	var box2 = new Physijs.BoxMesh(new THREE.CubeGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
+	// Skybox
+	var skybox = new GAME.Skybox();
+	this.scene.add(skybox);
+
+	// Světla
+	var amblight = new THREE.AmbientLight(0x555544);
+	this.scene.add(amblight);
+	var spotlight = new THREE.SpotLight(0xffffaa);
+	spotlight.position.set(-700, 700, 700);
+	spotlight.shadowCameraVisible = false;
+	spotlight.shadowDarkness = 0.75;
+	spotlight.intensity = 0.7;
+	spotlight.castShadow = true;
+	this.scene.add(spotlight);
+
+	// Box
+	// var box = new Physijs.BoxMesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
+	// color : 0x888888
+	// }));
+	// box.mass = 0; // aby nepadala
+	// box.position.set(0, 10, 0);
+	// this.scene.add(box);
+	// this.testbox = box;
+
+	var box2 = new Physijs.BoxMesh(new THREE.BoxGeometry(5, 5, 5), new THREE.MeshBasicMaterial({
 	    color : 0x00ff00
 	}));
-	box2.position.set(-20, 100, 103);
+	box2.position.set(0, 100, 2);
 	this.scene.add(box2);
 	this.testbox2 = box2;
 
+	// TEST MODULŮ
+
+	var loader = new THREE.JSONLoader();
+
+	// var ground_geometry = new THREE.PlaneGeometry(300, 300, 100, 100);
+	// for (var i = 0; i < ground_geometry.vertices.length; i++) {
+	// var vertex = ground_geometry.vertices[i];
+	// // vertex.y = NoiseGen.noise( vertex.x / 30, vertex.z / 30 ) * 1;
+	// }
+	// ground_geometry.computeFaceNormals();
+	// ground_geometry.computeVertexNormals();
+
+	// If your plane is not square as far as face count then the HeightfieldMesh
+	// takes two more arguments at the end: # of x faces and # of z faces that were passed to THREE.PlaneMaterial
+	// ground = new Physijs.HeightfieldMesh(ground_geometry, new THREE.MeshBasicMaterial({
+	// color : 0xaabbdd
+	// }), 0 // mass
+	// );
+	// ground.rotation.x = -Math.PI / 2;
+	// ground.receiveShadow = true;
+	// this.scene.add(ground);
+
+	var moduleUrl = "../models/modul/column_ground.json";
+	loader.load(moduleUrl, function(geometry, materials) {
+	    var scale = 10;
+	    var mesh = new Physijs.BoxMesh(geometry, new THREE.MeshFaceMaterial(materials));
+	    mesh.mass = 0;
+	    mesh.scale.set(scale, scale, scale);
+	    mesh.position.set(0, 0, 0);
+	    mesh.castShadow = true;
+	    mesh.receiveShadow = true;
+	    game.scene.add(mesh);
+	});
+
+	loader.load("../models/modul/angel.json", function(geometry, materials) {
+	    var scale = 5;
+	    var mesh = new Physijs.BoxMesh(geometry, new THREE.MeshFaceMaterial(materials));
+	    mesh.scale.set(scale, scale, scale);
+	    mesh.position.set(0, 50, 0);
+	    mesh.rotation.x = 0.5;
+	    mesh.castShadow = true;
+	    mesh.receiveShadow = true;
+	    // mesh.__dirtyPosition = true;
+	    // mesh.__dirtyRotation = true;
+	    mesh.mass = 2000;
+	    game.angel = mesh;
+	    game.scene.add(mesh);
+	});
+
 	this.animateScene();
     };
+
 };

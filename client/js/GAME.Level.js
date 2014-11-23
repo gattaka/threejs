@@ -84,14 +84,9 @@ GAME.Level.prototype = {
 	var modules = [];
 	var modulesToLoad = [ "modul", "modul2", "modul3", "modul4_coffin" ];
 
-	var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
-	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], 
-	            [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ],
-	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], 
-	            [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ], 
-	            [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ],
-	            [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
-		];
+	var map = [ [ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ],
+		[ 0, 1, 2, 0, 0, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 3, 0, 1, 2, 0 ], [ 0, 1, 2, 0, 0, 0, 1, 2, 0 ],
+		[ 0, 0, 0, 0, 0, 0, 0, 0, 0 ], ];
 
 	var buildMap = function() {
 	    for (i in map) {
@@ -99,7 +94,9 @@ GAME.Level.prototype = {
 		for (j in row) {
 		    var moduleIndex = row[j];
 		    var module = modules[moduleIndex];
-		    mesh = new THREE.Mesh(module.geometry, module.material);
+		    // var mesh = new THREE.Mesh(module.geometry, module.material);
+		    var mesh = new Physijs.ConvexMesh(module.geometry, module.material);
+		    mesh.mass = 0;
 		    mesh.scale.set(scale, scale, scale);
 		    mesh.position.set(start[0] + i * side, start[1], start[2] + j * side);
 		    mesh.castShadow = true;
