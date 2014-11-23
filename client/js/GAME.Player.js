@@ -5,6 +5,9 @@ GAME.Player = function(game) {
     player.game = game;
     var loader = new THREEx.UniversalLoader()
     loader.load('../models/armature_test.dae', function(object3d) {
+	/*
+	 * Animační model
+	 */
 	object3d.traverse(function(child) {
 	    child.castShadow = true;
 	    child.receiveShadow = true;
@@ -22,7 +25,7 @@ GAME.Player = function(game) {
 	game.scene.add(object3d);
 
 	/*
-	 * Physijs mesh
+	 * Fyzikální (kolizní) model
 	 */
 	var width = (box.max.x - box.min.x) * scale;
 	var height = (box.max.y - box.min.y) * scale;
@@ -35,9 +38,20 @@ GAME.Player = function(game) {
 	pMesh.position.set(0, 50, 0);
 	player.mesh = pMesh;
 	game.scene.add(pMesh);
+
+	/*
+	 * Provázání modelů
+	 */
 	game.scene.addEventListener('update', function() {
+
+	    // hráč se nikdy nepřeklopí apod. -- naopak jeho rotace jsou manuálně a pevně dány
+	    pMesh.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+
+	    // přenes nastavení pozice a rotací na animační model
 	    object3d.position.set(pMesh.position.x, pMesh.position.y - height / 2, pMesh.position.z);
 	    object3d.rotation.set(pMesh.rotation.x, pMesh.rotation.y, pMesh.rotation.z);
+
+	    // update pozice kamery
 	    player.targetCamera(game.camera, player);
 	});
 
@@ -134,7 +148,7 @@ GAME.Player.prototype = {
 	var distance = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
 	var zSpeed = (a / distance) * speed; // rychlost na odvěsně a (osa z)
 	var xSpeed = (b / distance) * speed; // rychlost na odvěsně b (osa x)
-	
+
 	var currentSpeedVector = p.mesh.getLinearVelocity();
 	currentSpeedVector.x = xSpeed;
 	currentSpeedVector.z = zSpeed;
@@ -146,6 +160,9 @@ GAME.Player.prototype = {
 	// jako 100 * poměr jejich původních délek
 	var lookTargetZ = target.z + (a > 0 ? 100 : -100);
 	var lookTargetX = target.x + (b > 0 ? 100 : -100) * Math.abs(b / a);
+	var lookAtVector = new THREE.Vector3(lookTargetX, p.mesh.position.y, lookTargetZ);
+	p.mesh.lookAt(lookAtVector);
+	p.mesh.__dirtyRotation = true; // rotace se měnila manuálně
 
 	// var tween = new TWEEN.Tween(position).to(target, distance / speed);
 	// tween.onStart(function() {
